@@ -17,7 +17,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 const navigation = [
-    { name: 'Panel', href: '/dashboard', icon: HomeIcon },
+    { name: 'Ana Sayfa', href: '/dashboard', icon: HomeIcon },
     { name: 'İşler', href: '/jobs', icon: BriefcaseIcon },
     { name: 'Müşteriler', href: '/customers', icon: UsersIcon },
     { name: 'Bölge Yönetimi', href: '/regions', icon: MapPinIcon },
@@ -176,23 +176,23 @@ export default function DashboardLayout({
 
                     {/* User profile section */}
                     <div className="flex flex-shrink-0 mt-auto p-4">
-                        <div className="group block w-full p-4 bg-white/50 hover:bg-white rounded-2xl border border-slate-100 transition-all cursor-pointer">
-                            <div className="flex items-center">
+                        <div className="group flex w-full items-center p-4 bg-white/50 hover:bg-white rounded-2xl border border-slate-100 transition-all">
+                            <Link href="/profile" className="flex items-center flex-1 min-w-0 cursor-pointer">
                                 <div className="inline-block h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border-2 border-white shadow-sm ring-2 ring-slate-50">
                                     {user?.name?.[0].toUpperCase()}
                                 </div>
                                 <div className="ml-3 min-w-0">
-                                    <p className="text-sm font-bold text-slate-700 truncate">{user?.name}</p>
+                                    <p className="text-sm font-bold text-slate-700 truncate group-hover:text-orange-600 transition-colors">{user?.name}</p>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === 'manager' ? 'Yönetici' : 'Saha Personeli'}</p>
                                 </div>
-                                <button
-                                    onClick={logout}
-                                    className="ml-auto p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                    title="Çıkış Yap"
-                                >
-                                    <ArrowLeftOnRectangleIcon className="h-5 w-5" />
-                                </button>
-                            </div>
+                            </Link>
+                            <button
+                                onClick={logout}
+                                className="ml-2 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Çıkış Yap"
+                            >
+                                <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+                            </button>
                         </div>
                     </div>
                 </div>
