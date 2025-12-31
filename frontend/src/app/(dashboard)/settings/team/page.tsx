@@ -24,6 +24,7 @@ interface User {
     id: number;
     name: string;
     email: string;
+    username: string | null;
     role: string;
     phone: string | null;
     blood_group: string | null;
