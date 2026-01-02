@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Job extends Model
 {
@@ -11,23 +12,39 @@ class Job extends Model
 
     protected $fillable = [
         'customer_id',
+        'authorized_person_id',
+        'contact_name',
+        'contact_phone',
         'assigned_user_id',
+        'region_id',
+        'title',
+        'location_address',
+        'maps_url',
+        'latitude',
+        'longitude',
         'type',
         'description',
+        'materials',
         'status',
-        'scheduled_at',
+        'priority',
+        'start_date',
+        'due_date',
         'completed_at',
-        'price',
+        'price'
     ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
 
-    public function customer()
+    public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function authorizedPerson(): BelongsTo
+    {
+        return $this->belongsTo(CustomerContact::class, 'authorized_person_id');
     }
 
     public function assignee()

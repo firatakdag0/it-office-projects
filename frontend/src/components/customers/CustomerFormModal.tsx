@@ -149,6 +149,22 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
         }
     };
 
+    const handleDelete = async () => {
+        if (!customerToEdit) return;
+        if (!confirm('Bu müşteriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+
+        setIsLoading(true);
+        try {
+            await axios.delete(`/customers/${customerToEdit.id}`);
+            onSuccess();
+            onClose();
+        } catch (error) {
+            alert('Silme işlemi başarısız.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <Transition appear show={isOpen} as={Fragment}>
             <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -363,11 +379,26 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
                                         </button>
                                     </div>
 
-                                    <div className="mt-8 flex justify-end space-x-3 pt-5 border-t border-gray-100">
-                                        <Button type="button" variant="secondary" onClick={onClose}>İptal</Button>
-                                        <Button type="submit" isLoading={isLoading} variant="orange">
-                                            {isEditing ? 'Değişiklikleri Kaydet' : 'Müşteriyi Oluştur'}
-                                        </Button>
+                                    <div className="mt-8 flex justify-between items-center pt-5 border-t border-gray-100">
+                                        <div>
+                                            {isEditing && (
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    onClick={handleDelete}
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
+                                                >
+                                                    <TrashIcon className="h-4 w-4 mr-2" />
+                                                    Müşteriyi Sil
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <div className="flex space-x-3">
+                                            <Button type="button" variant="secondary" onClick={onClose}>İptal</Button>
+                                            <Button type="submit" isLoading={isLoading} variant="orange">
+                                                {isEditing ? 'Değişiklikleri Kaydet' : 'Müşteriyi Oluştur'}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </form>
                             </Dialog.Panel>

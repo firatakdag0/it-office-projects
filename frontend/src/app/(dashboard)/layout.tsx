@@ -11,17 +11,22 @@ import {
     ArrowLeftOnRectangleIcon,
     Cog6ToothIcon,
     MapPinIcon,
+    BellIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import BottomNav from '@/components/ui/BottomNav';
+import useSWR from 'swr';
+import axios from '@/lib/axios';
 
 const navigation = [
     { name: 'Ana Sayfa', href: '/dashboard', icon: HomeIcon },
     { name: 'İşler', href: '/jobs', icon: BriefcaseIcon },
     { name: 'Müşteriler', href: '/customers', icon: UsersIcon },
-    { name: 'Bölge Yönetimi', href: '/regions', icon: MapPinIcon },
-    { name: 'Personel Yönetimi', href: '/settings/team', icon: Cog6ToothIcon },
+    { name: 'Bildirimler', href: '/notifications', icon: BellIcon, isNotification: true },
+    { name: 'Bölge Yönetimi', href: '/regions', icon: MapPinIcon, permission: 'manage_regions' },
+    { name: 'Personel Yönetimi', href: '/settings/team', icon: Cog6ToothIcon, permission: 'manage_staff' },
 ];
 
 function classNames(...classes: string[]) {
@@ -36,6 +41,12 @@ export default function DashboardLayout({
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const pathname = usePathname();
     const { user, logout } = useAuth({ middleware: 'auth' });
+
+    // Fetch unread notification count
+    const { data: unreadData } = useSWR(user ? '/notifications/unread-count' : null, (url) => axios.get(url).then(res => res.data), {
+        refreshInterval: 30000 // Refresh every 30 seconds
+    });
+    const unreadCount = unreadData?.count || 0;
 
     return (
         <div className="min-h-screen modern-gradient">
@@ -94,8 +105,8 @@ export default function DashboardLayout({
                                 </div>
                                 <div className="mt-8 h-0 flex-1 overflow-y-auto px-4">
                                     <nav className="space-y-2">
-                                        {navigation.map((item) => {
-                                            if (item.href === '/settings/team' && user?.role !== 'manager') return null;
+                                        {navigation.map((item: any) => {
+                                            if (item.permission && !user?.permissions?.includes(item.permission) && user?.role !== 'manager') return null;
 
                                             const isActive = pathname === item.href;
                                             return (
@@ -116,7 +127,12 @@ export default function DashboardLayout({
                                                         )}
                                                         aria-hidden="true"
                                                     />
-                                                    {item.name}
+                                                    <span className="flex-1">{item.name}</span>
+                                                    {item.isNotification && unreadCount > 0 && (
+                                                        <span className="ml-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white">
+                                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                                        </span>
+                                                    )}
                                                 </Link>
                                             )
                                         })}
@@ -145,8 +161,8 @@ export default function DashboardLayout({
                     </div>
                     <div className="mt-12 flex flex-grow flex-col px-4">
                         <nav className="flex-1 space-y-2">
-                            {navigation.map((item) => {
-                                if (item.href === '/settings/team' && user?.role !== 'manager') return null;
+                            {navigation.map((item: any) => {
+                                if (item.permission && !user?.permissions?.includes(item.permission) && user?.role !== 'manager') return null;
 
                                 const isActive = pathname === item.href;
                                 return (
@@ -167,7 +183,12 @@ export default function DashboardLayout({
                                             )}
                                             aria-hidden="true"
                                         />
-                                        {item.name}
+                                        <span className="flex-1">{item.name}</span>
+                                        {item.isNotification && unreadCount > 0 && (
+                                            <span className="ml-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white group-hover:ring-orange-50 transition-all">
+                                                {unreadCount > 9 ? '9+' : unreadCount}
+                                            </span>
+                                        )}
                                     </Link>
                                 );
                             })}
@@ -175,7 +196,7 @@ export default function DashboardLayout({
                     </div>
 
                     {/* User profile section */}
-                    <div className="flex flex-shrink-0 mt-auto p-4">
+                    <div className="flex flex-shrink-0 mt-auto p-4 flex-col gap-2">
                         <div className="group flex w-full items-center p-4 bg-white/50 hover:bg-white rounded-2xl border border-slate-100 transition-all">
                             <Link href="/profile" className="flex items-center flex-1 min-w-0 cursor-pointer">
                                 <div className="inline-block h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border-2 border-white shadow-sm ring-2 ring-slate-50">
@@ -208,23 +229,26 @@ export default function DashboardLayout({
                         <span className="sr-only">Open sidebar</span>
                         <Bars3Icon className="h-6 w-6" aria-hidden="true" />
                     </button>
-                    <div className="flex flex-1 items-center px-4">
-                        <img
-                            className="h-8 w-auto mr-3"
-                            src="/logo.png"
-                            alt="IT Office"
-                        />
-                        <span className="text-lg font-black text-slate-800">IT OFFICE</span>
+                    <div className="flex flex-1 items-center px-4 justify-between">
+                        <div className="flex items-center">
+                            <img
+                                className="h-8 w-auto mr-3"
+                                src="/logo.png"
+                                alt="IT Office"
+                            />
+                            <span className="text-lg font-black text-slate-800">IT OFFICE</span>
+                        </div>
                     </div>
                 </div>
 
-                <main className="flex-1">
+                <main className="flex-1 pb-20 lg:pb-0">
                     <div className="py-8 px-4 sm:px-6 lg:px-12">
                         <div className="mx-auto max-w-7xl">
                             {children}
                         </div>
                     </div>
                 </main>
+                <BottomNav />
             </div>
         </div>
     );

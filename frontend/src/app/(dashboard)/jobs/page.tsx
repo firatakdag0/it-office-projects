@@ -33,6 +33,7 @@ export default function JobsPage() {
         { id: 'traveling', name: 'Yolda' },
         { id: 'working', name: 'İşlemde' },
         { id: 'completed', name: 'Tamamlandı' },
+        { id: 'cancelled', name: 'İptal Edilenler' },
     ];
 
     if (!jobs) return (
@@ -55,42 +56,42 @@ export default function JobsPage() {
     };
 
     return (
-        <div className="animate-in fade-in duration-500 pb-20">
+        <div className="animate-in fade-in duration-500 pb-20 p-4 sm:p-6 lg:p-8">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">İş Listesi</h1>
-                    <p className="mt-1 text-slate-500 font-bold uppercase tracking-widest text-[9px]">
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight">İş Listesi</h1>
+                    <p className="mt-1 text-xs text-slate-500 font-medium">
                         {user?.role === 'manager'
-                            ? 'Tüm servis taleplerini ve durumlarını buradan yönetebilirsiniz.'
-                            : 'Size atanan görevleri ve detaylarını görüntüleyin.'}
+                            ? 'Servis taleplerini yönetin.'
+                            : 'Atanan görevlerinizi görüntüleyin.'}
                     </p>
                 </div>
-                {user?.role === 'manager' && (
-                    <Link href="/jobs/create" className="w-fit">
+                {(user?.role === 'manager' || user?.permissions?.includes('create_jobs')) && (
+                    <Link href="/jobs/create" className="w-full md:w-auto">
                         <Button
                             variant="orange"
-                            className="h-11 px-6 rounded-xl font-black text-xs scale-100 hover:scale-105 active:scale-95 transition-all"
+                            className="h-10 px-5 rounded-lg font-bold text-xs shadow-sm hover:shadow-md transition-all w-full md:w-auto"
                         >
                             <PlusIcon className="h-4 w-4 mr-2" />
-                            YENİ İŞ OLUŞTUR
+                            Yeni İş
                         </Button>
                     </Link>
                 )}
             </div>
 
             {/* Filter Tabs */}
-            <div className="mb-8 overflow-x-auto pb-2 scrollbar-hide">
-                <nav className="flex space-x-2" aria-label="Tabs">
+            <div className="mb-8 -mx-4 px-4 overflow-x-auto pb-4 scrollbar-hide lg:m-0 lg:p-0">
+                <nav className="flex space-x-3" aria-label="Tabs">
                     {statuses.map((status) => (
                         <button
                             key={status.name}
                             onClick={() => handleStatusFilter(status.id)}
                             className={`
-                                px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300
+                                px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap border
                                 ${statusFilter === status.id
-                                    ? 'bg-orange-600 text-white shadow-lg shadow-orange-100 scale-105'
-                                    : 'bg-white border border-slate-200 text-slate-400 hover:border-orange-500 hover:text-orange-600'
+                                    ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200 scale-105'
+                                    : 'bg-white border-slate-200 text-slate-500 hover:border-orange-400 hover:text-orange-600'
                                 }
                             `}
                         >
@@ -101,122 +102,102 @@ export default function JobsPage() {
             </div>
 
             {/* Jobs Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedJobs.map((job: any) => (
-                    <div
+                    <Link
                         key={job.id}
-                        className="group bg-white/80 backdrop-blur-sm rounded-3xl border border-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full"
+                        href={`/jobs/${job.id}`}
+                        className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-300 block p-5"
                     >
-                        <div className="p-6 flex-1">
-                            {/* Card Header */}
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="flex items-center">
-                                    <div className={`h-14 w-14 rounded-2xl flex items-center justify-center border border-white/50 shadow-inner group-hover:rotate-6 transition-transform ${getStatusColor(job.status, 'icon')}`}>
-                                        {getJobIcon(job.type)}
-                                    </div>
-                                    <div className="ml-4">
-                                        <h3 className="text-base font-black text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1" title={job.customer?.name}>
-                                            {job.customer?.name}
-                                        </h3>
-                                        <div className="flex items-center mt-0.5 space-x-2">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">#{job.id}</span>
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                {getJobTypeLabel(job.type)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        {/* Status Badge & ID */}
+                        <div className="flex justify-between items-center mb-4">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] border ${getStatusColor(job.status, 'badge')}`}>
+                                {getStatusLabel(job.status)}
+                            </span>
+                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">#{job.id}</span>
+                        </div>
 
-                            {/* Description */}
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
-                                <p className="text-[11px] font-bold text-slate-600 leading-relaxed line-clamp-3 italic">
-                                    "{job.description}"
-                                </p>
-                            </div>
-
-                            {/* Meta Info */}
-                            <div className="grid grid-cols-2 gap-4 pb-4">
-                                <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    <CalendarIcon className="h-4 w-4 mr-2 text-slate-300" />
-                                    {new Date(job.created_at).toLocaleDateString('tr-TR')}
-                                </div>
-                                <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    <MapPinIcon className="h-4 w-4 mr-2 text-slate-300" />
-                                    {job.customer?.region?.name || 'BÖLGE YOK'}
-                                </div>
-                            </div>
-
-                            {/* Status and Assignee */}
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors ${getStatusColor(job.status, 'badge')}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusColor(job.status, 'dot')}`}></span>
-                                    {getStatusLabel(job.status)}
+                        {/* Customer & Type */}
+                        <div className="mb-4">
+                            <h3 className="text-base font-black text-slate-900 group-hover:text-orange-600 transition-colors leading-tight" title={job.customer?.name}>
+                                {job.customer?.name}
+                            </h3>
+                            <div className="flex items-center mt-2">
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 ${getJobTypeColor(job.type)}`}>
+                                    {getJobTypeLabel(job.type)}
                                 </span>
-                                {job.assignee && (
-                                    <div className="flex items-center bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
-                                        <div className="w-5 h-5 rounded-md bg-orange-100 flex items-center justify-center text-[9px] font-black text-orange-600">
-                                            {job.assignee.name[0].toUpperCase()}
-                                        </div>
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">{job.assignee.name.split(' ')[0]}</span>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
-                        {/* Action Link */}
-                        <Link
-                            href={`/jobs/${job.id}`}
-                            className="bg-slate-900 group-hover:bg-orange-600 py-3.5 px-6 text-center text-[10px] font-black text-white uppercase tracking-[0.2em] transition-all duration-300 flex items-center justify-center space-x-2"
-                        >
-                            <span>İŞ DETAYINI GÖR</span>
-                            <Squares2X2Icon className="h-4 w-4 opacity-50" />
-                        </Link>
-                    </div>
+                        {/* Description Preview */}
+                        <p className="text-xs font-medium text-slate-500 line-clamp-2 mb-6 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50 leading-relaxed italic">
+                            {job.description}
+                        </p>
+
+                        {/* Footer Info */}
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                            <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                                {new Date(job.created_at).toLocaleDateString('tr-TR')}
+                            </div>
+
+                            {/* Region or Assignee Tiny Avatar */}
+                            {job.assignee ? (
+                                <div className="flex items-center" title={`Atanan: ${job.assignee.name}`}>
+                                    <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center text-[10px] font-black text-orange-600 border border-orange-200 shadow-sm group-hover:scale-110 transition-transform">
+                                        {job.assignee.name[0].toUpperCase()}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    <MapPinIcon className="h-3.5 w-3.5 mr-1" />
+                                    {job.customer?.region?.name || '-'}
+                                </div>
+                            )}
+                        </div>
+                    </Link>
                 ))}
             </div>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="mt-10 flex items-center justify-center space-x-2">
+                <div className="mt-8 flex items-center justify-center space-x-1">
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        className="p-2 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                        <ChevronLeftIcon className="h-5 w-5" />
+                        <ChevronLeftIcon className="h-4 w-4" />
                     </button>
-                    <div className="flex items-center space-x-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                            <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={`w-10 h-10 rounded-xl font-black text-xs transition-all ${currentPage === page
-                                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-100'
-                                    : 'bg-white border border-slate-200 text-slate-500 hover:border-orange-500 hover:text-orange-600'
-                                    }`}
-                            >
-                                {page}
-                            </button>
-                        ))}
-                    </div>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-8 h-8 rounded-lg font-bold text-xs transition-all ${currentPage === page
+                                ? 'bg-orange-500 text-white shadow-sm'
+                                : 'bg-white border border-slate-200 text-slate-500 hover:border-orange-400 hover:text-orange-600'
+                                }`}
+                        >
+                            {page}
+                        </button>
+                    ))}
                     <button
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                         disabled={currentPage === totalPages}
-                        className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        className="p-2 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                        <ChevronRightIcon className="h-5 w-5" />
+                        <ChevronRightIcon className="h-4 w-4" />
                     </button>
                 </div>
             )}
 
             {paginatedJobs.length === 0 && (
-                <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-slate-200 mt-8">
-                    <div className="h-16 w-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
-                        <BriefcaseIcon className="h-8 w-8" />
+                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 mt-4">
+                    <div className="h-12 w-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <BriefcaseIcon className="h-6 w-6 text-slate-300" />
                     </div>
-                    <h3 className="text-lg font-black text-slate-900">İş Bulunamadı</h3>
-                    <p className="text-sm text-slate-500 font-bold max-w-xs mx-auto mt-1">Seçilen filtreye uygun iş kaydı bulunmamaktadır.</p>
+                    <h3 className="text-sm font-bold text-slate-900">İş kaydı bulununamadı</h3>
+                    <p className="text-xs text-slate-500 mt-1">Filtre kriterlerinizi kontrol edin.</p>
                 </div>
             )}
         </div>
@@ -245,6 +226,11 @@ function getStatusColor(status: string, type: 'icon' | 'badge' | 'dot') {
             icon: 'bg-green-50 text-green-500',
             badge: 'bg-green-50 text-green-600 border-green-100',
             dot: 'bg-green-500'
+        },
+        cancelled: {
+            icon: 'bg-red-50 text-red-500',
+            badge: 'bg-red-50 text-red-600 border-red-100',
+            dot: 'bg-red-500'
         }
     };
     // @ts-ignore
@@ -257,6 +243,7 @@ function getStatusLabel(status: string) {
         traveling: 'Yolda',
         working: 'İşlemde',
         completed: 'Tamamlandı',
+        cancelled: 'İptal Edildi',
     };
     return labels[status] || status;
 }
@@ -270,6 +257,11 @@ function getJobTypeLabel(type: string) {
     return labels[type] || type;
 }
 
-function getJobIcon(type: string) {
-    return <BriefcaseIcon className="h-7 w-7" />;
+function getJobTypeColor(type: string) {
+    const colors: Record<string, string> = {
+        support: 'text-orange-600',
+        camera: 'text-blue-600',
+        cabling: 'text-indigo-600',
+    };
+    return colors[type] || 'text-slate-500';
 }

@@ -49,6 +49,9 @@ class UserController extends Controller
             'emergency_contact_phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
             'permissions' => 'nullable|array',
+            'bank_name' => 'nullable|string|max:100',
+            'iban' => 'nullable|string|max:34',
+            'start_date' => 'nullable|date',
         ]);
 
         $user = User::create([
@@ -65,6 +68,9 @@ class UserController extends Controller
             'emergency_contact_phone' => $request->emergency_contact_phone,
             'address' => $request->address,
             'permissions' => $request->permissions,
+            'bank_name' => $request->bank_name,
+            'iban' => $request->iban,
+            'start_date' => $request->start_date,
         ]);
 
         return response()->json($user, 201);
@@ -95,6 +101,9 @@ class UserController extends Controller
             'emergency_contact_phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
             'permissions' => 'nullable|array',
+            'bank_name' => 'nullable|string|max:100',
+            'iban' => 'nullable|string|max:34',
+            'start_date' => 'nullable|date',
         ]);
 
         $userData = $request->only([
@@ -109,7 +118,10 @@ class UserController extends Controller
             'emergency_contact_name',
             'emergency_contact_phone',
             'address',
-            'permissions'
+            'permissions',
+            'bank_name',
+            'iban',
+            'start_date'
         ]);
 
         if ($request->filled('password')) {

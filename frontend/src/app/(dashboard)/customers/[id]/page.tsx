@@ -9,10 +9,11 @@ import {
     MapPinIcon,
     BuildingOfficeIcon,
     UserIcon,
-    ChevronLeftIcon,
+    ArrowLeftIcon,
     PencilSquareIcon,
-    InformationCircleIcon,
-    BuildingLibraryIcon
+    BuildingLibraryIcon,
+    IdentificationIcon,
+    GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
@@ -29,195 +30,200 @@ export default function CustomerDetailPage() {
 
     if (!customer) return (
         <div className="flex justify-center items-center min-h-[50vh]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
         </div>
     );
 
     return (
-        <div className="animate-in fade-in duration-500">
-            {/* Header / Breadcrumb */}
-            <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-                <div className="flex items-center space-x-5">
-                    <button
-                        onClick={() => router.back()}
-                        className="p-3 rounded-2xl bg-white/60 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-orange-600 hover:border-orange-200 hover:scale-110 transition-all shadow-sm"
-                    >
-                        <ChevronLeftIcon className="h-6 w-6" />
-                    </button>
-                    <div>
-                        <div className="flex items-center space-x-3 mb-1">
-                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${customer.type === 'corporate' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
-                                {customer.type === 'corporate' ? 'Kurumsal Müşteri' : 'Bireysel Müşteri'}
-                            </span>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">ID: #{customer.id}</span>
-                        </div>
-                        <h1 className="text-4xl font-black text-slate-800 tracking-tight">{customer.name}</h1>
-                    </div>
+        <div className="animate-in fade-in duration-500 pb-20 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+            {/* Top Bar - Better mobile styling */}
+            <div className="mb-6 flex items-center justify-between">
+                <button
+                    onClick={() => router.back()}
+                    className="flex items-center text-slate-500 hover:text-orange-600 transition-colors bg-white px-3 py-2 rounded-xl border border-slate-100"
+                >
+                    <ArrowLeftIcon className="h-4 w-4 mr-2" />
+                    <span className="font-bold text-sm">Geri</span>
+                </button>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Müşteri ID: #{customer.id}
                 </div>
-                <Button onClick={() => setIsEditModalOpen(true)} variant="orange" className="shadow-lg shadow-orange-200 hover:scale-105 transition-transform">
-                    <PencilSquareIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                    Bilgileri Düzenle
-                </Button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                {/* Left Column: Basic Info & Corporate Details */}
-                <div className="lg:col-span-2 space-y-10">
-                    {/* Basic Info Card */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-sm border border-white overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-                            <h2 className="text-xl font-black text-slate-800 flex items-center">
-                                <InformationCircleIcon className="h-6 w-6 mr-3 text-orange-500" />
-                                İletişim & Temel Bilgiler
-                            </h2>
-                        </div>
-                        <div className="p-10">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                                <div className="space-y-6">
-                                    <div className="group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Telefon Hattı</label>
-                                        <div className="flex items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-orange-100 transition-all">
-                                            <PhoneIcon className="h-5 w-5 text-slate-400 mr-3 group-hover:text-orange-500 transition-colors" />
-                                            <p className="text-slate-800 font-bold">{customer.phone || 'Girilmemiş'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">E-Posta Adresi</label>
-                                        <div className="flex items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-orange-100 transition-all">
-                                            <EnvelopeIcon className="h-5 w-5 text-slate-400 mr-3 group-hover:text-orange-500 transition-colors" />
-                                            <p className="text-slate-800 font-bold">{customer.email || 'Girilmemiş'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-6">
-                                    <div className="group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">IBAN / Hesap Bilgisi</label>
-                                        <div className="flex items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-orange-100 transition-all">
-                                            <BuildingLibraryIcon className="h-5 w-5 text-slate-400 mr-3 group-hover:text-orange-500 transition-colors" />
-                                            <p className="text-slate-800 font-black font-mono tracking-tight">{customer.iban || 'Girilmemiş'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="group">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Bulunduğu Bölge</label>
-                                        <div className="flex items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-orange-100 transition-all">
-                                            <MapPinIcon className="h-5 w-5 text-slate-400 mr-3 group-hover:text-orange-500 transition-colors" />
-                                            <p className="text-slate-800 font-bold">{customer.region?.name || 'Belirtilmemiş'}</p>
-                                        </div>
-                                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: Details */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Header Card */}
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                            <div>
+                                <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{customer.name}</h1>
+                                <div className="flex flex-wrap items-center mt-3 gap-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                    <span className={`px-2 py-1 rounded-lg border ${customer.type === 'corporate' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
+                                        {customer.type === 'corporate' ? 'Kurumsal' : 'Bireysel'}
+                                    </span>
+                                    <span className="flex items-center bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                                        <MapPinIcon className="h-3.5 w-3.5 mr-1.5 text-orange-500" />
+                                        {customer.region?.name || 'Bölge Yok'}
+                                    </span>
                                 </div>
                             </div>
+                            <Button onClick={() => setIsEditModalOpen(true)} variant="secondary" className="h-10 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
+                                <PencilSquareIcon className="h-4 w-4 mr-2" />
+                                Düzenle
+                            </Button>
+                        </div>
+                    </div>
 
-                            <div className="mt-10 pt-8 border-t border-slate-100">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">Harita Konumu</label>
-                                {customer.maps_link ? (
-                                    <a
-                                        href={customer.maps_link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-orange-600 transition-all shadow-lg shadow-slate-200"
-                                    >
-                                        <MapPinIcon className="h-5 w-5 mr-3" />
-                                        Konumu Google Haritalarda Aç
-                                    </a>
-                                ) : (
-                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 border-dashed text-slate-400 text-sm italic">
-                                        Bu müşteri için henüz harita konumu eklenmemiş.
-                                    </div>
-                                )}
+                    {/* Contact & Basic Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                                <UserIcon className="h-4 w-4 mr-2" />
+                                İletişim Bilgileri
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Telefon</span>
+                                    {customer.phone ? (
+                                        <a href={`tel:${customer.phone}`} className="text-sm font-black text-orange-600 hover:scale-105 transition-transform inline-flex items-center">
+                                            <PhoneIcon className="h-4 w-4 mr-2" />
+                                            {customer.phone}
+                                        </a>
+                                    ) : (
+                                        <span className="text-sm font-bold text-slate-400 italic">Girilmemiş</span>
+                                    )}
+                                </div>
+                                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">E-Posta</span>
+                                    {customer.email ? (
+                                        <a href={`mailto:${customer.email}`} className="text-sm font-black text-slate-800 hover:text-orange-600 break-all inline-flex items-center">
+                                            <EnvelopeIcon className="h-4 w-4 mr-2 text-slate-400" />
+                                            {customer.email}
+                                        </a>
+                                    ) : (
+                                        <span className="text-sm font-bold text-slate-400 italic">Girilmemiş</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                                <BuildingLibraryIcon className="h-4 w-4 mr-2" />
+                                Finansal Bilgiler
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IBAN</span>
+                                    <p className="text-xs font-mono font-bold text-slate-700 break-all bg-white p-3 rounded-xl border border-slate-200 shadow-inner">
+                                        {customer.iban || 'IBAN bilgisi girilmemiş'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Corporate Details Card */}
+                    {/* Corporate Details */}
                     {customer.type === 'corporate' && (
-                        <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-sm border border-white overflow-hidden">
-                            <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30">
-                                <h2 className="text-xl font-black text-slate-800 flex items-center">
-                                    <BuildingOfficeIcon className="h-6 w-6 mr-3 text-indigo-500" />
-                                    Resmi Şirket Bilgileri
-                                </h2>
-                            </div>
-                            <div className="p-10 space-y-8">
-                                <div className="p-6 bg-indigo-50/50 border border-indigo-100 rounded-3xl">
-                                    <label className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 block">Tam Şirket Ünvanı</label>
-                                    <p className="text-indigo-900 font-black text-2xl leading-snug">{customer.full_company_name || 'Girilmemiş'}</p>
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                                <BuildingOfficeIcon className="h-4 w-4 mr-2" />
+                                Kurumsal Bilgiler
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Resmi Şirket Ünvanı</span>
+                                    <p className="text-sm font-black text-slate-900 leading-tight">{customer.full_company_name || '-'}</p>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl group hover:bg-white hover:border-indigo-100 transition-colors">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Vergi Numarası</label>
-                                        <p className="text-slate-800 font-black text-xl">{customer.tax_number || '-'}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vergi Dairesi</span>
+                                        <p className="text-sm font-black text-slate-900 flex items-center">
+                                            <BuildingOfficeIcon className="h-4 w-4 mr-2 text-orange-500" />
+                                            {customer.tax_office || '-'}
+                                        </p>
                                     </div>
-                                    <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl group hover:bg-white hover:border-indigo-100 transition-colors">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Vergi Dairesi</label>
-                                        <p className="text-slate-800 font-black text-xl">{customer.tax_office || '-'}</p>
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vergi Numarası</span>
+                                        <p className="text-sm font-black text-slate-900 flex items-center">
+                                            <IdentificationIcon className="h-4 w-4 mr-2 text-orange-500" />
+                                            {customer.tax_number || '-'}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Address Card */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-sm border border-white overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30">
-                            <h2 className="text-xl font-black text-slate-800 flex items-center">
-                                <MapPinIcon className="h-6 w-6 mr-3 text-red-500" />
-                                Adres Bilgileri
-                            </h2>
+                    {/* Address & Map */}
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center">
+                                <MapPinIcon className="h-4 w-4 mr-2" />
+                                Adres Bilgisi
+                            </h3>
+                            {customer.maps_link && (
+                                <a
+                                    href={customer.maps_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-fit text-[10px] font-black uppercase tracking-widest text-white bg-slate-900 hover:bg-slate-800 flex items-center px-4 py-2.5 rounded-xl shadow-lg shadow-slate-200 transition-all"
+                                >
+                                    <GlobeAltIcon className="h-4 w-4 mr-2" />
+                                    Haritada Aç
+                                </a>
+                            )}
                         </div>
-                        <div className="p-10">
-                            <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 border-dashed">
-                                <p className="text-slate-700 text-lg font-medium whitespace-pre-wrap leading-relaxed italic">
-                                    {customer.address || 'Adres bilgisi girilmemiş.'}
-                                </p>
-                            </div>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 leading-relaxed whitespace-pre-wrap">
+                            {customer.address || 'Adres girilmemiş.'}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Column: Contacts / Yetkililer */}
-                <div className="space-y-10">
-                    <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-sm border border-white overflow-hidden h-full">
-                        <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
-                            <h2 className="text-xl font-black text-slate-800 flex items-center">
-                                <UserIcon className="h-6 w-6 mr-3 text-blue-500" />
+                {/* Right Column: Contacts / Sidebar */}
+                <div className="space-y-6">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                 Yetkililer
-                            </h2>
-                            <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md shadow-blue-100 tracking-widest">{customer.contacts?.length || 0}</span>
+                            </h3>
+                            <span className="bg-slate-100 text-slate-600 text-[10px] font-black px-3 py-1 rounded-xl border border-slate-200">
+                                {customer.contacts?.length || 0}
+                            </span>
                         </div>
-                        <div className="p-8 space-y-6">
+
+                        <div className="space-y-4">
                             {customer.contacts?.map((contact: any, idx: number) => (
-                                <div key={idx} className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100 hover:border-blue-200 hover:bg-white transition-all duration-300 group">
-                                    <div className="flex items-center space-x-4 mb-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center font-black text-lg shadow-sm border border-white group-hover:scale-110 transition-transform">
+                                <div key={idx} className="p-4 rounded-2xl border border-slate-100 hover:border-orange-200 transition-all bg-slate-50/50 group/contact">
+                                    <div className="flex items-center mb-4">
+                                        <div className="h-10 w-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-black text-sm mr-4 shadow-sm group-hover/contact:scale-110 transition-transform">
                                             {contact.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="font-black text-slate-800 text-lg leading-none">{contact.name}</p>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mt-2">{contact.department || 'GENEL'}</p>
+                                            <p className="text-sm font-black text-slate-900 leading-tight">{contact.name}</p>
+                                            <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest">{contact.department || 'Genel'}</p>
                                         </div>
                                     </div>
-                                    <div className="space-y-2 mt-4 pt-4 border-t border-slate-100/50">
+                                    <div className="space-y-2">
                                         {contact.phone && (
-                                            <div className="flex items-center text-xs font-bold text-slate-500 bg-white/50 p-2 rounded-xl">
-                                                <PhoneIcon className="h-4 w-4 mr-3 text-slate-400" />
+                                            <a href={`tel:${contact.phone}`} className="flex items-center text-[11px] font-bold text-slate-600 hover:text-orange-600 transition-colors">
+                                                <PhoneIcon className="h-3.5 w-3.5 mr-2 text-slate-400" />
                                                 {contact.phone}
-                                            </div>
+                                            </a>
                                         )}
                                         {contact.email && (
-                                            <div className="flex items-center text-xs font-bold text-slate-500 bg-white/50 p-2 rounded-xl">
-                                                <EnvelopeIcon className="h-4 w-4 mr-3 text-slate-400" />
+                                            <a href={`mailto:${contact.email}`} className="flex items-center text-[11px] font-bold text-slate-600 hover:text-orange-600 transition-colors">
+                                                <EnvelopeIcon className="h-3.5 w-3.5 mr-2 text-slate-400" />
                                                 <span className="truncate">{contact.email}</span>
-                                            </div>
+                                            </a>
                                         )}
                                     </div>
                                 </div>
                             ))}
                             {(!customer.contacts || customer.contacts.length === 0) && (
-                                <div className="text-center py-16">
-                                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <UserIcon className="h-10 w-10 text-slate-200" />
-                                    </div>
-                                    <p className="text-slate-400 font-bold text-sm tracking-tight uppercase tracking-widest">Kayıtlı Yetkili Yok</p>
+                                <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    Yetkili eklenmemiş
                                 </div>
                             )}
                         </div>

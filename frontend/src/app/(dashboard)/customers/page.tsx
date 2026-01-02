@@ -102,31 +102,31 @@ export default function CustomersPage() {
     return (
         <div className="animate-in fade-in duration-500 pb-20">
             {/* Header Section */}
-            <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Müşteriler</h1>
-                    <p className="mt-1 text-slate-500 font-bold uppercase tracking-widest text-[9px]">Müşteri Portföyü ve İletişim Yönetimi</p>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Müşteriler</h1>
+                    <p className="mt-2 text-slate-500 font-black uppercase tracking-[0.2em] text-[10px]">Müşteri Portföyü ve İletişim Yönetimi</p>
                 </div>
                 {canCreate && (
                     <Button
                         onClick={() => { resetForm(); setIsOpen(true); }}
                         variant="orange"
-                        className="h-11 px-6 rounded-xl font-black text-xs scale-100 hover:scale-105 active:scale-95 transition-all w-fit"
+                        className="h-14 px-8 rounded-2xl font-black text-xs scale-100 hover:scale-[102%] active:scale-[98%] transition-all w-full md:w-fit shadow-lg shadow-orange-100 uppercase tracking-widest"
                     >
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        YENİ MÜŞTERİ EKLE
+                        <PlusIcon className="h-5 w-5 mr-3" />
+                        Yeni Müşteri Ekle
                     </Button>
                 )}
             </div>
 
             {/* Search Bar */}
-            <div className="mb-8 relative">
-                <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+            <div className="mb-10 relative px-1">
+                <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
                     <MagnifyingGlassIcon className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                     type="text"
-                    className="block w-full pl-14 pr-6 py-4 bg-white/80 backdrop-blur-sm border-2 border-white rounded-2xl shadow-sm focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 transition-all outline-none font-bold text-sm text-slate-700 placeholder-slate-400"
+                    className="block w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 transition-all outline-none font-bold text-sm text-slate-800 placeholder-slate-400"
                     placeholder="Müşteri ismi, bölge veya e-posta ile ara..."
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
@@ -134,95 +134,81 @@ export default function CustomersPage() {
             </div>
 
             {/* Customers Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedCustomers.map((customer: any) => (
                     <div
                         key={customer.id}
-                        className="group bg-white/80 backdrop-blur-sm rounded-3xl border border-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full"
+                        className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-300 p-6 flex flex-col justify-between"
                     >
-                        <div className="p-6 flex-1">
-                            <div className="flex items-start justify-between mb-6">
-                                <div className="flex items-center">
-                                    <div className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-inner group-hover:bg-orange-50 group-hover:text-orange-500 transition-colors">
-                                        {customer.type === 'corporate' ? <BuildingOfficeIcon className="h-8 w-8" /> : <UserIcon className="h-8 w-8" />}
-                                    </div>
-                                    <div className="ml-4">
-                                        <Link href={`/customers/${customer.id}`}>
-                                            <h3 className="text-lg font-black text-slate-900 group-hover:text-orange-600 transition-colors cursor-pointer line-clamp-1">{customer.name}</h3>
-                                        </Link>
-                                        <div className="flex items-center mt-0.5 space-x-2">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">#{customer.id}</span>
-                                            <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${customer.type === 'corporate' ? 'bg-indigo-50 text-indigo-600' : 'bg-green-50 text-green-600'}`}>
-                                                {customer.type === 'corporate' ? 'Kurumsal' : 'Bireysel'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-1">
+                        <div>
+                            {/* Top: Type & ID */}
+                            <div className="flex justify-between items-center mb-5">
+                                <span className={`inline-flex items-center px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] border ${customer.type === 'corporate' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
+                                    {customer.type === 'corporate' ? 'Kurumsal' : 'Bireysel'}
+                                </span>
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">#{customer.id}</span>
                                     {canEdit && (
                                         <button
-                                            onClick={() => handleEditCustomer(customer)}
-                                            className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:bg-orange-50 hover:text-orange-600 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handleEditCustomer(customer); }}
+                                            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
                                             title="Düzenle"
                                         >
                                             <PencilSquareIcon className="h-4 w-4" />
                                         </button>
                                     )}
-                                    {canDelete && (
-                                        <button
-                                            onClick={() => handleDeleteCustomer(customer.id)}
-                                            className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all"
-                                            title="Sil"
-                                        >
-                                            <TrashIcon className="h-4 w-4" />
-                                        </button>
+                                </div>
+                            </div>
+
+                            {/* Middle: Name & Contact Info */}
+                            <div className="mb-6">
+                                <Link href={`/customers/${customer.id}`} className="block">
+                                    <h3 className="text-lg font-black text-slate-900 group-hover:text-orange-600 transition-colors leading-tight mb-4" title={customer.name}>
+                                        {customer.name}
+                                    </h3>
+                                </Link>
+
+                                <div className="space-y-3">
+                                    {customer.phone && (
+                                        <a href={`tel:${customer.phone}`} className="flex items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold text-slate-700 hover:border-orange-200 hover:text-orange-600 transition-all">
+                                            <PhoneIcon className="h-4 w-4 mr-3 text-slate-400" />
+                                            <span className="truncate">{customer.phone}</span>
+                                        </a>
+                                    )}
+                                    {customer.email && (
+                                        <a href={`mailto:${customer.email}`} className="flex items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold text-slate-700 hover:border-orange-200 hover:text-orange-600 transition-all">
+                                            <EnvelopeIcon className="h-4 w-4 mr-3 text-slate-400" />
+                                            <span className="truncate">{customer.email}</span>
+                                        </a>
                                     )}
                                 </div>
                             </div>
-
-                            <div className="space-y-3">
-                                <div className="flex items-center text-[11px] font-bold text-slate-600">
-                                    <div className="p-1.5 rounded-lg bg-slate-50 mr-3">
-                                        <EnvelopeIcon className="h-3.5 w-3.5 text-slate-400" />
-                                    </div>
-                                    <span className="truncate">{customer.email || 'E-posta yok'}</span>
-                                </div>
-                                <div className="flex items-center text-[11px] font-bold text-slate-600">
-                                    <div className="p-1.5 rounded-lg bg-slate-50 mr-3">
-                                        <PhoneIcon className="h-3.5 w-3.5 text-slate-400" />
-                                    </div>
-                                    <span>{customer.phone || 'Telefon yok'}</span>
-                                </div>
-                                <div className="flex items-center text-[11px] font-bold text-slate-600">
-                                    <div className="p-1.5 rounded-lg bg-slate-50 mr-3">
-                                        <MapPinIcon className="h-3.5 w-3.5 text-slate-400" />
-                                    </div>
-                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[9px] uppercase tracking-wider font-black">
-                                        {customer.region?.name || 'Bölge Atanmamış'}
-                                    </span>
-                                </div>
-                                {customer.type === 'corporate' && (
-                                    <button
-                                        onClick={() => handleViewContacts(customer)}
-                                        className="flex items-center text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-orange-600 transition-colors mt-4 bg-slate-50 py-2 px-3 rounded-xl border border-dashed border-slate-200"
-                                    >
-                                        <UserIcon className="h-3.5 w-3.5 mr-2" />
-                                        {customer.contacts?.length || 0} Yetkili Tanımlı
-                                    </button>
-                                )}
-                            </div>
                         </div>
 
-                        <div className="px-6 py-3 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
-                            <Link
-                                href={`/customers/${customer.id}`}
-                                className="text-[9px] font-black text-orange-600 uppercase tracking-widest hover:text-orange-700 flex items-center"
-                            >
-                                DETAYLARI GÖR <ChevronRightIcon className="h-3 w-3 ml-1" />
-                            </Link>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                #{customer.id} KODU
-                            </span>
+                        {/* Footer: Region & Actions */}
+                        <div className="flex items-center justify-between pt-5 border-t border-slate-50 mt-2">
+                            <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <MapPinIcon className="h-4 w-4 mr-2" />
+                                {customer.region?.name || 'Bölge Yok'}
+                            </div>
+
+                            <div className="flex items-center space-x-3">
+                                {customer.type === 'corporate' && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleViewContacts(customer); }}
+                                        className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-white hover:bg-indigo-600 transition-all px-3 py-1.5 rounded-xl border border-indigo-100"
+                                    >
+                                        {customer.contacts?.length || 0} Yetkili
+                                    </button>
+                                )}
+                                <Link
+                                    href={`/customers/${customer.id}`}
+                                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-orange-600 hover:text-white transition-all shadow-sm"
+                                    title="Detaylar"
+                                >
+                                    <ChevronRightIcon className="h-5 w-5" />
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 ))}

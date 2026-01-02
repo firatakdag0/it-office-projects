@@ -31,6 +31,9 @@ class User extends Authenticatable
         'emergency_contact_name',
         'emergency_contact_phone',
         'address',
+        'bank_name',
+        'iban',
+        'start_date',
     ];
 
     /**
@@ -54,11 +57,17 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'permissions' => 'array',
+            'start_date' => 'date',
         ];
     }
 
     public function assignedJobs()
     {
         return $this->hasMany(Job::class, 'assigned_user_id');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
     }
 }

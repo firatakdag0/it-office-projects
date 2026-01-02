@@ -15,19 +15,41 @@ import {
     UserIcon,
     CurrencyDollarIcon,
     DocumentTextIcon,
-    PaperClipIcon,
     CheckCircleIcon,
     XCircleIcon,
-    ClockIcon,
+    ArrowPathIcon,
+    ClipboardDocumentListIcon,
     TruckIcon,
-    WrenchIcon
+    ClockIcon,
+    WrenchIcon,
+    PaperClipIcon,
+    PencilSquareIcon
 } from '@heroicons/react/24/outline';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 export default function JobDetailPage() {
     const { id } = useParams();
     const { user } = useAuth({ middleware: 'auth' });
     const router = useRouter();
+    const isManager = user?.role === 'manager';
     const [isLoading, setIsLoading] = useState(false);
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        confirmText: string;
+        variant: 'danger' | 'warning' | 'info';
+        statusToUpdate: string | null;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: '',
+        variant: 'info',
+        statusToUpdate: null
+    });
 
     const { data: job, error } = useSWR(`/jobs/${id}`, () =>
         axios.get(`/jobs/${id}`).then(res => res.data)
@@ -35,24 +57,36 @@ export default function JobDetailPage() {
 
     if (!job) return (
         <div className="flex justify-center items-center min-h-[50vh]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
         </div>
     );
 
-    const handleStatusUpdate = async (newStatus: string) => {
-        const confirmMsg = newStatus === 'cancelled' ? 'Bu işi iptal etmek istediğinize emin misiniz?' : `Durumu "${getStatusLabel(newStatus)}" olarak güncellemek üzeresiniz. Onaylıyor musunuz?`;
+    const handleStatusUpdate = (newStatus: string) => {
+        const isCancel = newStatus === 'cancelled';
+        setConfirmModal({
+            isOpen: true,
+            title: isCancel ? 'İşi İptal Et' : 'Durum Güncelleme',
+            message: isCancel
+                ? 'Bu işi iptal etmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
+                : `İş durumunu "${getStatusLabel(newStatus)}" olarak güncellemek üzeresiniz. Devam etmek istiyor musunuz?`,
+            confirmText: isCancel ? 'İptal Et' : 'Güncelle',
+            variant: isCancel ? 'danger' : 'info',
+            statusToUpdate: newStatus
+        });
+    };
 
-        if (!confirm(confirmMsg)) return;
+    const confirmStatusUpdate = async () => {
+        if (!confirmModal.statusToUpdate) return;
 
         setIsLoading(true);
         try {
             await axios.patch(`/jobs/${job.id}/status`, {
-                status: newStatus,
-                // In real app, we would get Geolocation here
+                status: confirmModal.statusToUpdate,
                 latitude: job.customer?.latitude || null,
                 longitude: job.customer?.longitude || null,
             });
             mutate(`/jobs/${id}`);
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
         } catch (e: any) {
             alert('Durum güncellenirken bir hata oluştu: ' + (e.response?.data?.message || e.message));
         } finally {
@@ -61,277 +95,305 @@ export default function JobDetailPage() {
     };
 
     const openMap = () => {
-        if (job.customer?.latitude && job.customer?.longitude) {
+        if (job.maps_url) {
+            window.open(job.maps_url, '_blank');
+        } else if (job.latitude && job.longitude) {
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${job.latitude},${job.longitude}`, '_blank');
+        } else if (job.customer?.latitude && job.customer?.longitude) {
             window.open(`https://www.google.com/maps/dir/?api=1&destination=${job.customer.latitude},${job.customer.longitude}`, '_blank');
         } else {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.customer.address)}`, '_blank');
+            // Priority: Job Location Address > Customer Address
+            const query = job.location_address || job.customer?.address || '';
+            if (query) {
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
+            } else {
+                alert("Konum bilgisi bulunamadı.");
+            }
         }
     };
 
     return (
-        <div className="animate-in fade-in duration-500">
-            {/* Top Bar / Breadcrumbs */}
-            <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="animate-in fade-in duration-500 pb-20 p-2 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+            {/* Top Bar - Hidden on mobile as we have BottomNav */}
+            <div className="mb-4 hidden lg:flex items-center justify-between">
                 <button
                     onClick={() => router.push('/jobs')}
-                    className="flex items-center p-3 rounded-2xl bg-white/60 backdrop-blur-sm border border-slate-200 text-slate-500 hover:text-orange-600 hover:border-orange-200 hover:scale-110 transition-all shadow-sm group w-fit"
+                    className="flex items-center text-slate-500 hover:text-orange-600 transition-colors bg-white px-3 py-2 rounded-xl border border-slate-100 lg:bg-transparent lg:border-0 lg:px-0 lg:py-0"
                 >
-                    <ArrowLeftIcon className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-                    <span className="font-bold text-sm">Listeye Dön</span>
+                    <ArrowLeftIcon className="h-4 w-4 mr-2" />
+                    <span className="font-bold text-sm">İşler</span>
                 </button>
-                <div className="flex items-center space-x-3 bg-white/60 backdrop-blur-sm p-2 px-4 rounded-2xl border border-slate-200 shadow-sm">
-                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">GÜNCEL DURUM:</span>
-                    <span className={`inline-flex items-center px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm ${getStatusColor(job.status)}`}>
-                        {getStatusLabel(job.status)}
-                    </span>
+                <div className="flex items-center space-x-4">
+                    <div className="text-xs font-medium text-slate-400">
+                        Job ID: #{job.id}
+                    </div>
+                    {(isManager || user?.permissions?.includes('edit_jobs')) && (
+                        <button
+                            onClick={() => router.push(`/jobs/${job.id}/edit`)}
+                            className="flex items-center text-orange-600 hover:text-orange-700 transition-colors bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-100"
+                        >
+                            <PencilSquareIcon className="h-4 w-4 mr-2" />
+                            <span className="font-bold text-xs">Düzenle</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                {/* Left Column: Job Info & Description */}
-                <div className="lg:col-span-2 space-y-10">
-                    {/* Main Info Card */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-sm border border-white overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-                            <h2 className="text-xl font-black text-slate-800 flex items-center">
-                                <BriefcaseIcon className="h-6 w-6 mr-3 text-orange-500" />
-                                İş Detay Bilgileri <span className="text-slate-300 ml-2">#{job.id}</span>
-                            </h2>
-                        </div>
-                        <div className="p-10">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
-                                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 group hover:bg-white hover:border-orange-100 transition-colors">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Hizmet Türü</label>
-                                    <p className="text-slate-800 font-black text-xl">{getJobTypeLabel(job.type)}</p>
-                                </div>
-                                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 group hover:bg-white hover:border-orange-100 transition-colors">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Oluşturulma Tarihi</label>
-                                    <p className="text-slate-800 font-bold text-lg">
-                                        {new Date(job.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                </div>
-                                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 group hover:bg-white hover:border-orange-100 transition-colors">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Sorumlu Personel</label>
-                                    <div className="flex items-center mt-1">
-                                        <div className="h-10 w-10 rounded-2xl bg-slate-200 flex items-center justify-center mr-3 text-slate-600 font-black shadow-inner">
-                                            {job.assignee?.name?.charAt(0) || '?'}
-                                        </div>
-                                        <p className="text-slate-800 font-black text-lg">{job.assignee?.name || 'Atanmamış'}</p>
-                                    </div>
-                                </div>
-                                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 group hover:bg-white hover:border-orange-100 transition-colors">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Servis Ücreti</label>
-                                    <div className="flex items-center text-orange-600">
-                                        <CurrencyDollarIcon className="h-6 w-6 mr-1" />
-                                        <p className="font-black text-2xl">
-                                            {job.price ? `${job.price} ₺` : 'Belirlenmedi'}
-                                        </p>
-                                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: Details */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Header Card */}
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                            <div>
+                                <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{job.customer?.name}</h1>
+                                <div className="flex flex-wrap items-center mt-3 gap-3 text-xs font-bold text-slate-500">
+                                    <span className="flex items-center bg-slate-50 px-2 py-1 rounded-lg">
+                                        <BriefcaseIcon className="h-3.5 w-3.5 mr-1.5 text-orange-500" />
+                                        {getJobTypeLabel(job.type)}
+                                    </span>
+                                    <span className="flex items-center bg-slate-50 px-2 py-1 rounded-lg">
+                                        <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
+                                        {new Date(job.created_at).toLocaleDateString('tr-TR')}
+                                    </span>
                                 </div>
                             </div>
+                            <span className={`w-fit px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${getStatusColor(job.status, 'badge')}`}>
+                                {getStatusLabel(job.status)}
+                            </span>
+                        </div>
+                    </div>
 
+                    {/* Description & Materials */}
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-6">
+                        <div>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center">
+                                <DocumentTextIcon className="h-4 w-4 mr-2" />
+                                İş Açıklaması
+                            </h3>
+                            <div className="bg-slate-50 rounded-2xl p-4 text-sm font-medium text-slate-700 leading-relaxed whitespace-pre-wrap border border-slate-100">
+                                {job.description}
+                            </div>
+                        </div>
+
+                        {job.materials && (
+                            <div>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center">
+                                    <ClipboardDocumentListIcon className="h-4 w-4 mr-2 text-orange-500" />
+                                    Gerekli Malzemeler
+                                </h3>
+                                <div className="bg-orange-50/50 rounded-2xl p-4 text-sm font-bold text-slate-800 leading-relaxed border border-orange-100">
+                                    {job.materials}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Customer & Location Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                                <UserIcon className="h-4 w-4 mr-2" />
+                                Müşteri Bilgisi
+                            </h3>
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 block">İş Açıklaması & Notlar</label>
-                                <div className="p-8 bg-slate-900 rounded-[2rem] text-slate-300 leading-relaxed font-medium italic shadow-xl shadow-slate-200">
-                                    {job.description}
+                                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Telefon</span>
+                                    <a href={`tel:${job.customer?.phone}`} className="text-sm font-black text-orange-600 hover:scale-105 transition-transform">
+                                        {job.customer?.phone}
+                                    </a>
+                                </div>
+                                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Adres</span>
+                                    <p className="text-sm font-bold text-slate-700 leading-snug">{job.customer?.address}</p>
+                                </div>
+                                {(job.contact_name || job.authorized_person) && (
+                                    <div className="p-3 rounded-2xl bg-indigo-50/50 border border-indigo-100">
+                                        <span className="text-[10px] font-black text-indigo-500 block mb-1 uppercase tracking-widest">Yetkili / Muhatap</span>
+                                        <p className="text-sm font-black text-slate-800">{job.contact_name || job.authorized_person?.name}</p>
+                                        <p className="text-[11px] font-bold text-slate-500 mt-1">{job.contact_phone || job.authorized_person?.phone || '-'}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                                <CurrencyDollarIcon className="h-4 w-4 mr-2" />
+                                Servis Bilgileri
+                            </h3>
+                            <div className="space-y-3">
+                                {(isManager || user?.permissions?.includes('view_prices')) && (
+                                    <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ücret</span>
+                                        <span className="text-sm font-black text-slate-800">{job.price ? `${job.price} ₺` : 'Belirlenmedi'}</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sorumlu</span>
+                                    <div className="flex items-center">
+                                        <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center text-[9px] font-black text-orange-600 mr-2 border border-orange-200">
+                                            {job.assignee?.name?.[0]?.toUpperCase()}
+                                        </div>
+                                        <span className="text-sm font-black text-slate-800">{job.assignee?.name || 'Atanmamış'}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Attachments Section */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-sm border border-white overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
-                            <h2 className="text-xl font-black text-slate-800 flex items-center">
-                                <PaperClipIcon className="h-6 w-6 mr-3 text-indigo-500" />
-                                Dosyalar & Ekran Görüntüleri
-                            </h2>
-                            <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md shadow-indigo-100 tracking-widest">{job.attachments?.length || 0}</span>
-                        </div>
-                        <div className="p-10">
-                            {job.attachments?.length > 0 ? (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                                    {job.attachments.map((file: any) => (
-                                        <a
-                                            key={file.id}
-                                            href={`${process.env.NEXT_PUBLIC_BACKEND_URL}/storage/${file.file_path}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="group relative rounded-3xl border border-slate-100 overflow-hidden aspect-square flex items-center justify-center bg-slate-50 hover:border-indigo-300 hover:scale-105 transition-all shadow-sm"
-                                        >
-                                            {file.file_type.startsWith('image/') ? (
-                                                <img
-                                                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL}/storage/${file.file_path}`}
-                                                    alt={file.file_name}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <DocumentTextIcon className="h-12 w-12 text-slate-300 group-hover:text-indigo-400 transition-colors" />
-                                            )}
-                                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4">
-                                                <CheckCircleIcon className="h-8 w-8 text-white mb-2" />
-                                                <span className="text-[10px] text-white font-black uppercase tracking-widest text-center truncate w-full">
-                                                    {file.file_name}
-                                                </span>
+                    {/* Attachments */}
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                            <PaperClipIcon className="h-4 w-4 mr-2" />
+                            Dosyalar ({job.attachments?.length || 0})
+                        </h3>
+
+                        {job.attachments?.length > 0 ? (
+                            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                                {job.attachments.map((file: any) => (
+                                    <a
+                                        key={file.id}
+                                        href={`${process.env.NEXT_PUBLIC_BACKEND_URL}/storage/${file.file_path}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group relative block aspect-square rounded-2xl border border-slate-200 overflow-hidden bg-slate-50 hover:border-orange-200 transition-colors shadow-sm"
+                                    >
+                                        {file.file_type.startsWith('image/') ? (
+                                            <img
+                                                src={`${process.env.NEXT_PUBLIC_BACKEND_URL}/storage/${file.file_path}`}
+                                                alt={file.file_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <DocumentTextIcon className="h-8 w-8 text-slate-400" />
                                             </div>
-                                        </a>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-16 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-                                    <PaperClipIcon className="h-12 w-10 text-slate-200 mx-auto mb-4" />
-                                    <p className="text-slate-400 font-bold text-sm tracking-tight uppercase tracking-widest">Ekli Dosya Bulunmamaktadır</p>
-                                </div>
-                            )}
-                        </div>
+                                        )}
+                                    </a>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 font-bold text-[10px] text-slate-400 uppercase tracking-widest">
+                                Henüz dosya eklenmemiş
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Right Column: Customer & Actions */}
-                <div className="space-y-10">
-                    {/* Customer Contact Card */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-sm border border-white overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30">
-                            <h2 className="text-xl font-black text-slate-800 flex items-center">
-                                <UserIcon className="h-6 w-6 mr-3 text-blue-500" />
-                                Müşteri Bilgisi
-                            </h2>
-                        </div>
-                        <div className="p-8">
-                            <h3 className="text-2xl font-black text-slate-900 mb-6 leading-tight">{job.customer?.name}</h3>
+                {/* Right Column: Actions */}
+                <div className="space-y-6">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 sticky top-6">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
+                            İşlemler
+                        </h3>
 
-                            <div className="space-y-6">
-                                <a
-                                    href={`tel:${job.customer?.phone}`}
-                                    className="flex items-center p-5 rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white hover:border-blue-200 transition-all group shadow-sm"
-                                >
-                                    <div className="p-3 rounded-2xl bg-blue-100 text-blue-600 mr-4 group-hover:scale-110 transition-transform">
-                                        <PhoneIcon className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Telefon</p>
-                                        <p className="text-base font-black text-slate-700">{job.customer?.phone}</p>
-                                    </div>
-                                </a>
+                        <div className="space-y-4">
+                            {/* Map Button */}
+                            <button
+                                onClick={openMap}
+                                className="w-full flex items-center justify-center px-4 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                            >
+                                <MapPinIcon className="h-5 w-5 mr-3" />
+                                Yol Tarifi / Harita
+                            </button>
 
-                                <div className="p-5 rounded-3xl border border-slate-100 bg-slate-50 shadow-sm">
-                                    <div className="flex items-start mb-4">
-                                        <div className="p-3 rounded-2xl bg-orange-100 text-orange-600 mr-4">
-                                            <MapPinIcon className="h-6 w-6" />
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hizmet Adresi</p>
-                                            <p className="text-sm font-bold text-slate-700 leading-relaxed italic line-clamp-3">{job.customer?.address}</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={openMap}
-                                        className="w-full flex items-center justify-center px-6 py-3 bg-white border-2 border-orange-100 rounded-2xl font-black text-xs text-orange-600 hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all group"
-                                    >
-                                        YOL TARİFİ AL
-                                        <TruckIcon className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                            <div className="border-t border-slate-100 my-6"></div>
 
-                    {/* Actions Card */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-2xl shadow-slate-200 border border-white overflow-hidden sticky top-8">
-                        <div className="px-8 py-6 border-b border-slate-100 bg-slate-900">
-                            <h2 className="text-xl font-black text-white flex items-center">
-                                <ClockIcon className="h-6 w-6 mr-3 text-orange-500" />
-                                İş Akış Yönetimi
-                            </h2>
-                        </div>
-                        <div className="p-10 space-y-6">
+                            {/* Status Actions */}
                             {job.status === 'pending' && (
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-1 gap-3">
                                     <Button
                                         variant="orange"
-                                        className="w-full h-16 rounded-2xl shadow-xl shadow-orange-100 font-black text-lg scale-100 hover:scale-105 active:scale-95 transition-all"
+                                        className="w-full justify-center h-14 rounded-2xl font-black text-xs uppercase tracking-[0.15em] shadow-lg shadow-orange-100"
                                         onClick={() => handleStatusUpdate('traveling')}
                                         isLoading={isLoading}
                                     >
-                                        <TruckIcon className="h-6 w-6 mr-3" />
-                                        YOLA ÇIK
+                                        <TruckIcon className="h-5 w-5 mr-3" />
+                                        Yola Çık
                                     </Button>
-                                    <Button
-                                        variant="secondary"
-                                        className="w-full h-12 rounded-2xl text-red-600 font-bold hover:bg-red-50 hover:border-red-100 border-none"
+                                    <button
+                                        className="w-full py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-red-500 transition-colors"
                                         onClick={() => handleStatusUpdate('cancelled')}
-                                        isLoading={isLoading}
                                     >
                                         İptal Et
-                                    </Button>
+                                    </button>
                                 </div>
                             )}
 
                             {job.status === 'traveling' && (
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-1 gap-3">
                                     <Button
-                                        className="w-full h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100 font-black text-lg scale-100 hover:scale-105 active:scale-95 transition-all"
+                                        className="w-full justify-center h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.15em] shadow-lg shadow-indigo-100"
                                         onClick={() => handleStatusUpdate('working')}
                                         isLoading={isLoading}
                                     >
-                                        <WrenchIcon className="h-6 w-6 mr-3" />
-                                        İŞE BAŞLA
+                                        <WrenchIcon className="h-5 w-5 mr-3" />
+                                        İşe Başla
                                     </Button>
-                                    <Button
-                                        variant="secondary"
-                                        className="w-full h-12 rounded-2xl text-red-600 font-bold hover:bg-red-50 hover:border-red-100 border-none"
+                                    <button
+                                        className="w-full py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-red-500 transition-colors"
                                         onClick={() => handleStatusUpdate('cancelled')}
-                                        isLoading={isLoading}
                                     >
                                         İptal Et
-                                    </Button>
+                                    </button>
                                 </div>
                             )}
 
                             {job.status === 'working' && (
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-1 gap-3">
                                     <Button
-                                        className="w-full h-16 rounded-2xl bg-green-600 hover:bg-green-700 shadow-xl shadow-green-100 font-black text-lg scale-100 hover:scale-105 active:scale-95 transition-all"
+                                        className="w-full justify-center h-14 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.15em] shadow-lg shadow-green-100"
                                         onClick={() => handleStatusUpdate('completed')}
                                         isLoading={isLoading}
                                     >
-                                        <CheckCircleIcon className="h-6 w-6 mr-3" />
-                                        İŞİ TAMAMLA
+                                        <CheckCircleIcon className="h-5 w-5 mr-3" />
+                                        İşi Tamamla
                                     </Button>
-                                    <Button
-                                        variant="secondary"
-                                        className="w-full h-12 rounded-2xl text-red-600 font-bold hover:bg-red-50 hover:border-red-100 border-none"
+                                    <button
+                                        className="w-full py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-red-500 transition-colors"
                                         onClick={() => handleStatusUpdate('cancelled')}
-                                        isLoading={isLoading}
                                     >
                                         İptal Et
-                                    </Button>
+                                    </button>
                                 </div>
                             )}
 
                             {job.status === 'completed' && (
-                                <div className="text-center py-6 p-6 bg-green-50 rounded-[2rem] border border-green-100">
-                                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-200">
-                                        <CheckCircleIcon className="h-12 w-12 text-green-500" />
+                                <div className="text-center p-6 bg-green-50 rounded-2xl border border-green-100">
+                                    <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-green-100">
+                                        <CheckCircleIcon className="h-10 w-10 text-green-500" />
                                     </div>
-                                    <p className="text-lg font-black text-green-900 leading-tight">İş Tamamlandı</p>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-green-600 mt-2">Arşivlenmiş Kayıt</p>
+                                    <p className="text-sm font-black text-green-800 uppercase tracking-widest">Tamamlandı</p>
+                                    <p className="text-[10px] font-bold text-green-600 mt-1 uppercase tracking-widest">
+                                        {job.completed_at ? new Date(job.completed_at).toLocaleDateString('tr-TR') : ''}
+                                    </p>
                                 </div>
                             )}
 
                             {job.status === 'cancelled' && (
-                                <div className="text-center py-6 p-6 bg-red-50 rounded-[2rem] border border-red-100">
-                                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-red-200">
-                                        <XCircleIcon className="h-12 w-12 text-red-400" />
+                                <div className="text-center p-6 bg-red-50 rounded-2xl border border-red-100">
+                                    <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-red-100">
+                                        <XCircleIcon className="h-10 w-10 text-red-500" />
                                     </div>
-                                    <p className="text-lg font-black text-red-900 leading-tight">İş İptal Edildi</p>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mt-2">Geçersiz Kayıt</p>
+                                    <p className="text-sm font-black text-red-800 uppercase tracking-widest">İptal Edildi</p>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmStatusUpdate}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                variant={confirmModal.variant}
+                isLoading={isLoading}
+            />
         </div>
     );
 }
@@ -348,22 +410,22 @@ function getStatusLabel(status: string) {
     return labels[status] || status;
 }
 
-function getStatusColor(status: string) {
+function getStatusColor(status: string, type: 'badge') {
     const colors: Record<string, string> = {
-        pending: 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
-        traveling: 'bg-blue-50 text-blue-700 ring-blue-600/20',
-        working: 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
-        completed: 'bg-green-50 text-green-700 ring-green-600/20',
-        cancelled: 'bg-red-50 text-red-700 ring-red-600/20',
+        pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        traveling: 'bg-blue-100 text-blue-800 border-blue-200',
+        working: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+        completed: 'bg-green-100 text-green-800 border-green-200',
+        cancelled: 'bg-red-100 text-red-800 border-red-200',
     };
-    return colors[status] || 'bg-slate-50 text-slate-700 ring-slate-600/20';
+    return colors[status] || 'bg-slate-100 text-slate-800 border-slate-200';
 }
 
 function getJobTypeLabel(type: string) {
     const labels: Record<string, string> = {
         support: 'Teknik Destek',
-        camera: 'Kamera Sistemleri',
-        cabling: 'Kablolama / Altyapı',
+        camera: 'Kamera Montaj',
+        cabling: 'Kablolama',
     };
     return labels[type] || type;
 }

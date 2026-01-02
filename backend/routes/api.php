@@ -31,4 +31,10 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     // Users
     Route::apiResource('users', \App\Http\Controllers\Api\v1\UserController::class);
     Route::put('/users/{user}/permissions', [\App\Http\Controllers\Api\v1\UserController::class, 'updatePermissions']);
+
+    // Notifications
+    Route::get('/notifications', [\App\Http\Controllers\Api\v1\NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\v1\NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Api\v1\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [\App\Http\Controllers\Api\v1\NotificationController::class, 'markAllAsRead']);
 });

@@ -25,6 +25,9 @@ interface User {
     name: string;
     email: string;
     username: string | null;
+    bank_name: string | null;
+    iban: string | null;
+    start_date: string | null;
     role: string;
     phone: string | null;
     blood_group: string | null;

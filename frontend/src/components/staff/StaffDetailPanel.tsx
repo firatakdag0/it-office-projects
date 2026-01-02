@@ -13,7 +13,9 @@ import {
     TrashIcon,
     ShieldCheckIcon,
     BuildingOfficeIcon,
-    UserIcon
+    UserIcon,
+    BanknotesIcon,
+    CalendarDaysIcon
 } from '@heroicons/react/24/outline';
 import Button from '@/components/ui/Button';
 
@@ -30,6 +32,9 @@ interface User {
     emergency_contact_name: string | null;
     emergency_contact_phone: string | null;
     address: string | null;
+    bank_name: string | null;
+    iban: string | null;
+    start_date: string | null;
     permissions: string[] | null;
 }
 
@@ -40,6 +45,23 @@ interface StaffDetailPanelProps {
     onEdit: (user: User) => void;
     onDelete: (user: User) => void;
 }
+
+const PERMISSION_LABELS: Record<string, string> = {
+    view_customers: 'Müşterileri Görüntüle',
+    create_customers: 'Müşteri Oluştur',
+    edit_customers: 'Müşteri Düzenle',
+    delete_customers: 'Müşteri Sil',
+    view_all_jobs: 'Tüm İşleri Gör',
+    create_jobs: 'İş Kaydı Oluştur',
+    edit_jobs: 'İş Detayı Düzenle',
+    delete_jobs: 'İş Kaydı Sil',
+    assign_jobs: 'Personel Ata',
+    view_prices: 'Fiyatları Gör',
+    edit_prices: 'Fiyatları Düzenle',
+    view_financial_reports: 'Özet Raporlar',
+    manage_regions: 'Bölgeleri Yönet',
+    manage_staff: 'Personel Yönetimi',
+};
 
 export default function StaffDetailPanel({ isOpen, onClose, user, onEdit, onDelete }: StaffDetailPanelProps) {
     if (!user) return null;
@@ -146,6 +168,20 @@ export default function StaffDetailPanel({ isOpen, onClose, user, onEdit, onDele
                                                 </div>
                                             </div>
 
+                                            {/* Financial & Job Info */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Finansal & İş Bilgileri</h4>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    <DetailRow
+                                                        icon={CalendarDaysIcon}
+                                                        label="İşe Giriş Tarihi"
+                                                        value={user.start_date ? new Date(user.start_date).toLocaleDateString('tr-TR') : 'Belirtilmedi'}
+                                                    />
+                                                    <DetailRow icon={BuildingOfficeIcon} label="Banka" value={user.bank_name || 'Belirtilmedi'} />
+                                                    <DetailRow icon={BanknotesIcon} label="IBAN" value={user.iban || 'Belirtilmedi'} isMultiline />
+                                                </div>
+                                            </div>
+
                                             {/* Emergency Contact */}
                                             <div className="space-y-4">
                                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Acil Durum Kontağı</h4>
@@ -168,7 +204,7 @@ export default function StaffDetailPanel({ isOpen, onClose, user, onEdit, onDele
                                                         user.permissions.map((p, i) => (
                                                             <span key={i} className="flex items-center px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-600 uppercase tracking-wider">
                                                                 <ShieldCheckIcon className="h-3 w-3 mr-1.5 text-orange-500" />
-                                                                {p}
+                                                                {PERMISSION_LABELS[p] || p}
                                                             </span>
                                                         ))
                                                     ) : (

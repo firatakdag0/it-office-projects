@@ -24,6 +24,12 @@ body {
   color: #1e293b;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+  /* Prevent double-tap zoom delay */
+  touch-action: manipulation;
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior-y: none;
+  /* Remove tap highlight on mobile links */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .glass-effect {
@@ -45,13 +51,16 @@ body {
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }

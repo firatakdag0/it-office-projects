@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import axios from '@/lib/axios';
 import useSWR, { mutate } from 'swr';
 import Button from '@/components/ui/Button';
@@ -12,22 +12,26 @@ import {
     CalendarIcon,
     UserIcon,
     MapPinIcon,
-    CurrencyDollarIcon,
-    DocumentTextIcon,
     PlusIcon,
     PhotoIcon,
-    XMarkIcon
+    XMarkIcon,
+    TrashIcon
 } from '@heroicons/react/24/outline';
 
 const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-export default function CreateJobPage() {
+export default function EditJobPage() {
     const router = useRouter();
+    const params = useParams();
+    const id = params.id;
+
+    const { data: job, error: jobError } = useSWR(id ? `/jobs/${id}` : null, fetcher);
     const { data: customers } = useSWR('/customers', fetcher);
     const { data: regions } = useSWR('/regions', fetcher);
     const { data: staff } = useSWR('/users', fetcher);
 
     const [isLoading, setIsLoading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
     // Form State
@@ -49,28 +53,51 @@ export default function CreateJobPage() {
     const [locationAddress, setLocationAddress] = useState('');
     const [mapsUrl, setMapsUrl] = useState('');
 
+    // Populate form when job data is loaded
+    useEffect(() => {
+        if (job) {
+            setCustomerId(job.customer_id?.toString() || '');
+            setRegionId(job.region_id?.toString() || '');
+            setTitle(job.title || '');
+
+            const jobTypes = ['support', 'camera', 'cabling'];
+            if (jobTypes.includes(job.type)) {
+                setType(job.type);
+            } else {
+                setType('other');
+                setCustomType(job.type);
+            }
+
+            setDescription(job.description || '');
+            setMaterials(job.materials || '');
+
+            // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
+            if (job.start_date) {
+                const date = new Date(job.start_date);
+                const formattedDate = date.toISOString().slice(0, 16);
+                setScheduledAt(formattedDate);
+            }
+
+            setAssignedUserId(job.assigned_user_id?.toString() || '');
+            setPrice(job.price?.toString() || '');
+
+            setContactId(job.authorized_person_id?.toString() || '');
+            setContactName(job.contact_name || '');
+            setContactPhone(job.contact_phone || '');
+
+            if (job.location_address || job.maps_url) {
+                setLocationType('custom');
+                setLocationAddress(job.location_address || '');
+                setMapsUrl(job.maps_url || '');
+            } else {
+                setLocationType('customer');
+            }
+        }
+    }, [job]);
+
     // Filtered contacts based on selected customer
     const activeCustomer = customers?.find((c: any) => c.id === parseInt(customerId));
     const customerContacts = activeCustomer?.contacts || [];
-
-    // Pre-fill location from customer if selected
-    useEffect(() => {
-        if (customerId && customers) {
-            const customer = customers.find((c: any) => c.id === parseInt(customerId));
-            // Future: If we implement map selection, we can pre-fill coordinates here
-            // setLatitude(customer.latitude);
-            // setLongitude(customer.longitude);
-
-            // Set default contact phone from customer if no contact is selected
-            if (!contactId && customer) {
-                setContactPhone(customer.phone || '');
-            }
-            // Auto-select region if customer has one
-            if (customer && customer.region_id) {
-                setRegionId(customer.region_id.toString());
-            }
-        }
-    }, [customerId, customers, contactId]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -82,16 +109,14 @@ export default function CreateJobPage() {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Handle customer selection
     const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = e.target.value;
         setCustomerId(id);
         const customer = customers?.find((c: any) => c.id === parseInt(id));
         if (customer) {
-            // Reset contact fields when customer changes
             setContactId('');
             setContactName('');
-            setContactPhone(customer.phone || ''); // Default to customer phone if no contact selected
+            setContactPhone(customer.phone || '');
             if (customer.region_id) setRegionId(customer.region_id.toString());
         } else {
             setContactPhone('');
@@ -99,7 +124,6 @@ export default function CreateJobPage() {
         }
     };
 
-    // Handle contact selection
     const handleContactChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = e.target.value;
         setContactId(id);
@@ -111,7 +135,7 @@ export default function CreateJobPage() {
             }
         } else {
             setContactName('');
-            setContactPhone(activeCustomer?.phone || ''); // Revert to customer phone if "none" is selected
+            setContactPhone(activeCustomer?.phone || '');
         }
     };
 
@@ -120,27 +144,28 @@ export default function CreateJobPage() {
         setIsLoading(true);
 
         const formData = new FormData();
+        formData.append('_method', 'PUT'); // For Laravel to handle PUT with FormData
         formData.append('customer_id', customerId);
         if (regionId) formData.append('region_id', regionId);
         formData.append('title', title);
         formData.append('type', type === 'other' ? customType : type);
         formData.append('description', description);
         if (materials) formData.append('materials', materials);
-        if (scheduledAt) formData.append('start_date', scheduledAt); // backend expects start_date
-        // default status and priority
-        formData.append('status', 'pending');
-        formData.append('priority', 'medium');
+        if (scheduledAt) formData.append('start_date', scheduledAt);
 
         if (assignedUserId) formData.append('assigned_user_id', assignedUserId);
         if (price) formData.append('price', price);
 
-        // Contact info
         if (contactId) formData.append('authorized_person_id', contactId);
         if (contactName) formData.append('contact_name', contactName);
         if (contactPhone) formData.append('contact_phone', contactPhone);
+
         if (locationType === 'custom') {
-            if (locationAddress) formData.append('location_address', locationAddress);
-            if (mapsUrl) formData.append('maps_url', mapsUrl);
+            formData.append('location_address', locationAddress);
+            formData.append('maps_url', mapsUrl);
+        } else {
+            formData.append('location_address', '');
+            formData.append('maps_url', '');
         }
 
         files.forEach((file, index) => {
@@ -148,21 +173,37 @@ export default function CreateJobPage() {
         });
 
         try {
-            await axios.post('/jobs', formData, {
+            await axios.post(`/jobs/${id}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            // Refresh cache and redirect
+            mutate(`/jobs/${id}`);
             mutate('/jobs');
-            router.push('/jobs');
+            router.push(`/jobs/${id}`);
         } catch (error: any) {
-            alert('İş oluşturulurken bir hata oluştu: ' + (error.response?.data?.message || error.message));
+            alert('İş güncellenirken bir hata oluştu: ' + (error.response?.data?.message || error.message));
         } finally {
             setIsLoading(false);
         }
     };
 
-    if (!customers || !staff) {
+    const handleDelete = async () => {
+        if (!confirm('Bu işi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+
+        setIsDeleting(true);
+        try {
+            await axios.delete(`/jobs/${id}`);
+            mutate('/jobs');
+            router.push('/jobs');
+        } catch (error: any) {
+            alert('İş silinirken bir hata oluştu: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    if (jobError) return <div className="p-8 text-center text-red-500 font-bold">İş yüklenirken hata oluştu.</div>;
+    if (!job || !customers || !staff) {
         return (
             <div className="flex justify-center items-center min-h-[50vh]">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
@@ -176,10 +217,10 @@ export default function CreateJobPage() {
                 <div className="md:flex md:items-center md:justify-between mb-8">
                     <div className="min-w-0 flex-1">
                         <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                            Yeni İş Oluştur
+                            İşi Düzenle
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            Müşteri için yeni bir servis veya montaj talebi oluşturun.
+                            #{id} numaralı iş talebinin bilgilerini güncelleyin.
                         </p>
                     </div>
                 </div>
@@ -191,14 +232,11 @@ export default function CreateJobPage() {
 
                                 {/* 1. Basic Info */}
                                 <div className="space-y-6">
-                                    <div>
+                                    <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-medium leading-6 text-gray-900 flex items-center">
                                             <BriefcaseIcon className="h-5 w-5 mr-2 text-orange-500" />
                                             İş Detayları
                                         </h3>
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            Müşteri ve yapılacak işin türünü seçin.
-                                        </p>
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
@@ -242,7 +280,6 @@ export default function CreateJobPage() {
                                                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm py-2.5 px-3 border bg-white"
                                                     value={regionId}
                                                     onChange={(e) => setRegionId(e.target.value)}
-                                                    disabled={!regions}
                                                 >
                                                     <option value="">Seçiniz...</option>
                                                     {regions?.map((r: any) => (
@@ -311,7 +348,6 @@ export default function CreateJobPage() {
                                             )}
                                         </div>
 
-                                        {/* Contact Person Section */}
                                         {customerId && (
                                             <div className="sm:col-span-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
                                                 <label className="block text-xs font-bold text-indigo-600 mb-4 uppercase tracking-wide">Yetkili / Muhatap Bilgisi</label>
@@ -429,77 +465,21 @@ export default function CreateJobPage() {
                                                     id="materials"
                                                     rows={2}
                                                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-3 border"
-                                                    placeholder="Örn: 2x Cat6 Kablo, 1x Switch (Stok sistemi yakında eklenecek, şimdilik metin olarak giriniz)"
+                                                    placeholder="Gerekli malzemeleri giriniz..."
                                                     value={materials}
                                                     onChange={e => setMaterials(e.target.value)}
                                                 />
                                             </div>
-                                        </div>
-
-                                        <div className="sm:col-span-6">
-                                            <label className="block text-sm font-medium text-gray-700">
-                                                Ekran Görüntüsü / Dosya Ekle
-                                            </label>
-                                            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer relative">
-                                                <div className="space-y-1 text-center">
-                                                    <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
-                                                    <div className="flex text-sm text-gray-600">
-                                                        <label
-                                                            htmlFor="file-upload"
-                                                            className="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500"
-                                                        >
-                                                            <span>Dosya Yükle</span>
-                                                            <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} accept="image/*,.pdf" />
-                                                        </label>
-                                                        <p className="pl-1">veya sürükleyip bırakın</p>
-                                                    </div>
-                                                    <p className="text-xs text-gray-500">
-                                                        PNG, JPG, PDF (max 10MB)
-                                                    </p>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                    multiple
-                                                    onChange={handleFileChange}
-                                                    accept="image/*,.pdf"
-                                                />
-                                            </div>
-
-                                            {/* Preview List */}
-                                            {files.length > 0 && (
-                                                <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                                                    {files.map((file, index) => (
-                                                        <li key={index} className="relative group rounded-lg border border-gray-200 bg-white p-2 flex items-center shadow-sm">
-                                                            <div className="flex-1 truncate text-xs text-gray-600">
-                                                                {file.name}
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeFile(index)}
-                                                                className="ml-2 text-gray-400 hover:text-red-500"
-                                                            >
-                                                                <XMarkIcon className="h-4 w-4" />
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* 2. Schedule & Assignment */}
                                 <div className="pt-8 space-y-6">
-                                    <div>
-                                        <h3 className="text-lg font-medium leading-6 text-gray-900 flex items-center">
-                                            <CalendarIcon className="h-5 w-5 mr-2 text-indigo-500" />
-                                            Planlama & Atama
-                                        </h3>
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            İşin ne zaman ve kim tarafından yapılacağını belirleyin.
-                                        </p>
-                                    </div>
+                                    <h3 className="text-lg font-medium leading-6 text-gray-900 flex items-center">
+                                        <CalendarIcon className="h-5 w-5 mr-2 text-indigo-500" />
+                                        Planlama & Atama
+                                    </h3>
 
                                     <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                                         <div className="sm:col-span-3">
@@ -520,7 +500,7 @@ export default function CreateJobPage() {
 
                                         <div className="sm:col-span-3">
                                             <label htmlFor="assignee" className="block text-sm font-medium text-gray-700">
-                                                Personel Ata (Opsiyonel)
+                                                Personel Ata
                                             </label>
                                             <div className="mt-1">
                                                 <select
@@ -560,13 +540,26 @@ export default function CreateJobPage() {
                                     </div>
                                 </div>
 
-                                <div className="pt-8 mt-4 flex justify-end space-x-3">
-                                    <Button type="button" variant="secondary" onClick={() => router.back()}>
-                                        İptal
+                                <div className="pt-8 mt-4 flex justify-between items-center">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={handleDelete}
+                                        isLoading={isDeleting}
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
+                                    >
+                                        <TrashIcon className="h-4 w-4 mr-2" />
+                                        İşi Sil
                                     </Button>
-                                    <Button type="submit" isLoading={isLoading} variant="orange" className="px-8">
-                                        İşi Oluştur
-                                    </Button>
+
+                                    <div className="flex space-x-3">
+                                        <Button type="button" variant="secondary" onClick={() => router.back()}>
+                                            İptal
+                                        </Button>
+                                        <Button type="submit" isLoading={isLoading} variant="orange" className="px-8">
+                                            İşi Güncelle
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -582,7 +575,6 @@ export default function CreateJobPage() {
                     if (newCustomer) {
                         setCustomerId(newCustomer.id);
                     }
-                    // Optionally set as selected customer
                 }}
             />
         </div>
