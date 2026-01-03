@@ -1,0 +1,19 @@
+# Nixpacks Configuration for Monorepo
+# This file helps Nixpacks detect the project structure when deployed at the root.
+
+[phases.setup]
+nixPkgs = ["nodejs", "php82", "php82Packages.composer"]
+
+[phases.install]
+cmds = [
+  "if [ -d \"frontend\" ]; then cd frontend && npm install; fi",
+  "if [ -d \"backend\" ]; then cd backend && composer install --no-dev --optimize-autoloader; fi"
+]
+
+[phases.build]
+cmds = [
+  "if [ -d \"frontend\" ]; then cd frontend && npm run build; fi"
+]
+
+[start]
+cmd = "if [ -d \"backend\" ]; then cd backend && php artisan serve --host=0.0.0.0 --port=$PORT; else cd frontend && npm start; fi"
