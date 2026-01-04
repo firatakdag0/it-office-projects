@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://ookk8gokg4k44wc4wso48sco.213.238.182.31.sslip.io,http://localhost:3000')),
 
     'allowed_origins_patterns' => [],
 
