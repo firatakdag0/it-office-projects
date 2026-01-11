@@ -11,6 +11,7 @@ import {
     PlusIcon,
     TrashIcon
 } from '@heroicons/react/24/outline';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface CustomerFormModalProps {
     isOpen: boolean;
@@ -25,7 +26,7 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
 
     // Form State
     // Form State
-    const [type, setType] = useState('individual');
+    const [type, setType] = useState('corporate');
     const [name, setName] = useState('');
     const [fullCompanyName, setFullCompanyName] = useState('');
     const [taxNumber, setTaxNumber] = useState('');
@@ -40,8 +41,9 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
     const [availableRegions, setAvailableRegions] = useState<any[]>([]);
 
     // Contacts State
-    const [contacts, setContacts] = useState([{ name: '', department: '', phone: '', email: '' }]);
-    const [activeTab, setActiveTab] = useState('info');
+    const [contacts, setContacts] = useState<any[]>([]);
+    const [currentStep, setCurrentStep] = useState(1);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     // Fetch Regions
     useEffect(() => {
@@ -74,11 +76,11 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
                         email: c.email || ''
                     })));
                 } else {
-                    setContacts([{ name: '', department: '', phone: '', email: '' }]);
+                    setContacts([]);
                 }
             } else {
                 // Reset for Create mode
-                setType('individual');
+                setType('corporate');
                 setName('');
                 setFullCompanyName('');
                 setTaxNumber('');
@@ -89,11 +91,24 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
                 setEmail('');
                 setAddress('');
                 setMapsLink('');
-                setContacts([{ name: '', department: '', phone: '', email: '' }]);
-                setActiveTab('info');
+                setContacts([]);
+                setCurrentStep(1);
             }
         }
     }, [isOpen, customerToEdit]);
+
+
+    const handleNext = () => {
+        if (currentStep < 3) {
+            setCurrentStep(currentStep + 1);
+        }
+    };
+
+    const handleBack = () => {
+        if (currentStep > 1) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
 
 
     const handleAddContact = () => {
@@ -111,8 +126,12 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
         setContacts(newContacts);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+
+        // Safety check: Only proceed if we are really on the last step
+        if (currentStep < 3) return;
+
         setIsLoading(true);
 
         const payload: any = {
@@ -151,8 +170,10 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
 
     const handleDelete = async () => {
         if (!customerToEdit) return;
-        if (!confirm('Bu müşteriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+        setIsDeleteModalOpen(true);
+    };
 
+    const confirmDelete = async () => {
         setIsLoading(true);
         try {
             await axios.delete(`/customers/${customerToEdit.id}`);
@@ -162,6 +183,7 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
             alert('Silme işlemi başarısız.');
         } finally {
             setIsLoading(false);
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -200,204 +222,254 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
                                     </button>
                                 </Dialog.Title>
 
-                                {/* TABS HEADER */}
-                                {type === 'corporate' ? (
-                                    <div className="flex space-x-1 rounded-xl bg-slate-100 p-1 mb-6">
-                                        <button
-                                            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white ring-opacity-60 ring-offset-2 ring-offset-orange-400 focus:outline-none focus:ring-2 ${activeTab === 'info'
-                                                ? 'bg-white text-orange-600 shadow'
-                                                : 'text-gray-600 hover:bg-white/[0.12] hover:text-white'
-                                                }`}
-                                            onClick={() => setActiveTab('info')}
-                                        >
-                                            Firma Bilgileri
-                                        </button>
-                                        <button
-                                            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white ring-opacity-60 ring-offset-2 ring-offset-orange-400 focus:outline-none focus:ring-2 ${activeTab === 'contacts'
-                                                ? 'bg-white text-orange-600 shadow'
-                                                : 'text-gray-600 hover:bg-white/[0.12] hover:text-white'
-                                                }`}
-                                            onClick={() => setActiveTab('contacts')}
-                                        >
-                                            Yetkililer ({contacts.length})
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="mb-4 text-sm text-gray-500 italic border-b pb-2">Bireysel müşteri bilgileri</div>
-                                )}
-
-                                <form onSubmit={handleSubmit} className="mt-2">
-
-                                    {/* INFO TAB CONTENT */}
-                                    <div className={activeTab === 'info' || type === 'individual' ? 'block space-y-5' : 'hidden'}>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div
-                                                className={`border-2 rounded-xl p-3 cursor-pointer transition-all ${type === 'individual' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-orange-200'}`}
-                                                onClick={() => { setType('individual'); setActiveTab('info'); }}
-                                            >
-                                                <div className="flex items-center space-x-2">
-                                                    <div className={`p-1.5 rounded-full ${type === 'individual' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'}`}>
-                                                        <UserIcon className="h-5 w-5" />
-                                                    </div>
-                                                    <span className={`font-semibold text-sm ${type === 'individual' ? 'text-orange-900' : 'text-gray-600'}`}>Bireysel</span>
+                                <div className="mb-8">
+                                    <div className="flex items-center justify-between relative px-2">
+                                        {[1, 2, 3].map((s) => (
+                                            <div key={s} className="flex flex-col items-center z-10">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${currentStep === s ? 'bg-orange-500 text-white ring-4 ring-orange-100 shadow-lg' : currentStep > s ? 'bg-green-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
+                                                    {currentStep > s ? (
+                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                    ) : s}
                                                 </div>
+                                                <span className={`text-[10px] font-black uppercase tracking-tighter mt-2 ${currentStep === s ? 'text-orange-500' : 'text-slate-400'}`}>
+                                                    {s === 1 ? 'KİMLİK' : s === 2 ? 'İLETİŞİM' : 'DETAYLAR'}
+                                                </span>
                                             </div>
+                                        ))}
+                                        <div className="absolute top-4 left-0 w-full h-0.5 bg-slate-100 -z-0">
                                             <div
-                                                className={`border-2 rounded-xl p-3 cursor-pointer transition-all ${type === 'corporate' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-200'}`}
-                                                onClick={() => setType('corporate')}
-                                            >
-                                                <div className="flex items-center space-x-2">
-                                                    <div className={`p-1.5 rounded-full ${type === 'corporate' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'}`}>
-                                                        <BuildingOfficeIcon className="h-5 w-5" />
-                                                    </div>
-                                                    <span className={`font-semibold text-sm ${type === 'corporate' ? 'text-indigo-900' : 'text-gray-600'}`}>Kurumsal</span>
-                                                </div>
-                                            </div>
+                                                className="h-full bg-orange-500 transition-all duration-500"
+                                                style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
+                                            />
                                         </div>
+                                    </div>
+                                </div>
 
-                                        <Input label={type === 'corporate' ? 'Kısa Ad / Ünvan' : 'Ad Soyad'} value={name} onChange={e => setName(e.target.value)} required placeholder="Örn: Ahmet Yılmaz" />
+                                <form className="mt-2" onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}>
 
-                                        {type === 'corporate' && (
-                                            <div className="space-y-4 pt-2 border-t border-indigo-100 mt-4">
-                                                <Input label="Tam Şirket Ünvanı" value={fullCompanyName} onChange={e => setFullCompanyName(e.target.value)} placeholder="Örn: Örnek Bilişim Teknoloji Ltd. Şti." />
+                                    {/* STEP 1: IDENTITY */}
+                                    {currentStep === 1 && (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                            <div>
+                                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">MÜŞTERİ TÜRÜ</label>
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    <Input label="Vergi Numarası" value={taxNumber} onChange={e => setTaxNumber(e.target.value)} placeholder="0000000000" />
-                                                    <Input label="Vergi Dairesi" value={taxOffice} onChange={e => setTaxOffice(e.target.value)} placeholder="Ateşehır V.D." />
+                                                    <div
+                                                        className={`border-2 rounded-xl p-3 cursor-pointer transition-all ${type === 'corporate' ? 'border-orange-500 bg-orange-50/50' : 'border-slate-100 hover:border-orange-200'}`}
+                                                        onClick={() => setType('corporate')}
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <div className={`p-1.5 rounded-full ${type === 'corporate' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                                <BuildingOfficeIcon className="h-5 w-5" />
+                                                            </div>
+                                                            <span className={`font-semibold text-sm ${type === 'corporate' ? 'text-orange-900' : 'text-slate-600'}`}>Kurumsal</span>
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        className={`border-2 rounded-xl p-3 cursor-pointer transition-all ${type === 'individual' ? 'border-orange-500 bg-orange-50/50' : 'border-slate-100 hover:border-orange-200'}`}
+                                                        onClick={() => setType('individual')}
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <div className={`p-1.5 rounded-full ${type === 'individual' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                                <UserIcon className="h-5 w-5" />
+                                                            </div>
+                                                            <span className={`font-semibold text-sm ${type === 'individual' ? 'text-orange-900' : 'text-slate-600'}`}>Bireysel</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        )}
 
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Müşteri Bölgesi</label>
-                                            <select
-                                                value={regionId}
-                                                onChange={(e) => setRegionId(e.target.value)}
-                                                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-2.5 border bg-white text-gray-900"
-                                            >
-                                                <option value="">Bölge Seçin (İsteğe Bağlı)</option>
-                                                {availableRegions.map(reg => (
-                                                    <option key={reg.id} value={reg.id}>{reg.name}</option>
-                                                ))}
-                                            </select>
+                                            <Input
+                                                label={type === 'corporate' ? 'Kısa Ad / Ünvan' : 'Ad Soyad'}
+                                                value={name}
+                                                onChange={e => setName(e.target.value)}
+                                                required
+                                                placeholder={type === 'corporate' ? "Örn: Örnek Bilişim" : "Örn: Ahmet Yılmaz"}
+                                            />
+
+                                            {type === 'corporate' && (
+                                                <Input
+                                                    label="Tam Şirket Ünvanı"
+                                                    value={fullCompanyName}
+                                                    onChange={e => setFullCompanyName(e.target.value)}
+                                                    placeholder="Örn: Örnek Bilişim Teknoloji Ltd. Şti."
+                                                />
+                                            )}
                                         </div>
+                                    )}
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <Input label="Telefon" value={phone} onChange={e => setPhone(e.target.value)} placeholder="05XX..." />
-                                            <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ornek@email.com" />
+                                    {/* STEP 2: CONTACT & LOCATION */}
+                                    {currentStep === 2 && (
+                                        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <Input label="Telefon" value={phone} onChange={e => setPhone(e.target.value)} placeholder="05XX..." />
+                                                <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ornek@email.com" />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Müşteri Bölgesi</label>
+                                                <select
+                                                    value={regionId}
+                                                    onChange={(e) => setRegionId(e.target.value)}
+                                                    className="w-full rounded-2xl border-slate-200 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm p-3 border bg-white text-slate-900"
+                                                >
+                                                    <option value="">Bölge Seçin (İsteğe Bağlı)</option>
+                                                    {availableRegions.map(reg => (
+                                                        <option key={reg.id} value={reg.id}>{reg.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <Input
+                                                label="Konum Linki (Maps)"
+                                                value={mapsLink}
+                                                onChange={e => setMapsLink(e.target.value)}
+                                                placeholder="https://maps.google.com/..."
+                                                required
+                                            />
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1 text-xs font-black uppercase tracking-widest text-slate-400">AÇIK ADRES</label>
+                                                <textarea
+                                                    className="w-full rounded-2xl border-slate-200 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm p-3 border placeholder:text-slate-400"
+                                                    rows={3}
+                                                    value={address}
+                                                    onChange={e => setAddress(e.target.value)}
+                                                    placeholder="Mahalle, Sokak, No..."
+                                                ></textarea>
+                                            </div>
                                         </div>
+                                    )}
 
-                                        <Input label="IBAN Numarası" value={iban} onChange={e => setIban(e.target.value)} placeholder="TR00 0000 0000..." />
+                                    {/* STEP 3: DETAILS & CONTACTS */}
+                                    {currentStep === 3 && (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                            {type === 'corporate' ? (
+                                                <div className="space-y-4">
+                                                    <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4">
+                                                        <h4 className="text-sm font-bold text-orange-900 flex items-center">
+                                                            <UserIcon className="h-4 w-4 mr-2" />
+                                                            Firma Yetkilileri
+                                                        </h4>
+                                                        <p className="text-xs text-orange-700 mt-1">İletişim kurulacak kişileri ekleyin.</p>
+                                                    </div>
 
-                                        <Input
-                                            label="Konum Linki (Maps)"
-                                            value={mapsLink}
-                                            onChange={e => setMapsLink(e.target.value)}
-                                            placeholder="https://maps.google.com/..."
-                                            required
-                                        />
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Açık Adres</label>
-                                            <textarea
-                                                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-3 border"
-                                                rows={3}
-                                                value={address}
-                                                onChange={e => setAddress(e.target.value)}
-                                                placeholder="Mahalle, Sokak, No..."
-                                            ></textarea>
-                                        </div>
-                                    </div>
-
-                                    {/* CONTACTS TAB CONTENT */}
-                                    <div className={activeTab === 'contacts' && type === 'corporate' ? 'block space-y-4' : 'hidden'}>
-                                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
-                                            <h4 className="text-sm font-medium text-blue-900 flex items-center">
-                                                <UserIcon className="h-4 w-4 mr-2" />
-                                                Yetkili Listesi
-                                            </h4>
-                                            <p className="text-xs text-blue-700 mt-1">Bu firmaya bağlı iletişim kurulacak kişileri yönetin.</p>
-                                        </div>
-
-                                        <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-                                            {contacts.map((contact, index) => (
-                                                <div key={index} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative group hover:border-indigo-300 transition-colors">
-                                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                        <div className="sm:col-span-2">
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Ad Soyad"
-                                                                className="block w-full border-0 border-b border-transparent bg-gray-50 focus:border-indigo-600 focus:bg-white focus:ring-0 sm:text-sm px-0 py-1 transition-colors font-medium text-gray-900"
-                                                                value={contact.name}
-                                                                onChange={e => handleContactChange(index, 'name', e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Departman"
-                                                                className="block w-full border-0 border-b border-transparent bg-gray-50 focus:border-indigo-600 focus:bg-white focus:ring-0 text-xs px-0 py-1 transition-colors text-gray-600"
-                                                                value={contact.department}
-                                                                onChange={e => handleContactChange(index, 'department', e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Telefon"
-                                                                className="block w-full border-0 border-b border-transparent bg-gray-50 focus:border-indigo-600 focus:bg-white focus:ring-0 text-xs px-0 py-1 transition-colors text-gray-600"
-                                                                value={contact.phone}
-                                                                onChange={e => handleContactChange(index, 'phone', e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <div className="sm:col-span-2">
-                                                            <input
-                                                                type="email"
-                                                                placeholder="Email Adresi"
-                                                                className="block w-full border-0 border-b border-transparent bg-gray-50 focus:border-indigo-600 focus:bg-white focus:ring-0 text-xs px-0 py-1 transition-colors text-gray-600"
-                                                                value={contact.email}
-                                                                onChange={e => handleContactChange(index, 'email', e.target.value)}
-                                                            />
-                                                        </div>
+                                                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                                                        {contacts.length === 0 ? (
+                                                            <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                                                                <p className="text-sm font-bold text-slate-400">Henüz yetkili eklenmedi.</p>
+                                                            </div>
+                                                        ) : (
+                                                            contacts.map((contact, index) => (
+                                                                <div key={index} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 relative group hover:border-orange-300 transition-colors">
+                                                                    <div className="grid grid-cols-2 gap-3">
+                                                                        <div className="col-span-2">
+                                                                            <input
+                                                                                type="text"
+                                                                                placeholder="Ad Soyad"
+                                                                                className="block w-full border-0 border-b border-transparent bg-transparent focus:border-orange-600 focus:ring-0 text-sm p-0 transition-colors font-bold text-slate-900 placeholder:text-slate-400"
+                                                                                value={contact.name}
+                                                                                onChange={e => handleContactChange(index, 'name', e.target.value)}
+                                                                            />
+                                                                        </div>
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Telefon"
+                                                                            className="block w-full border-0 border-b border-transparent bg-transparent focus:border-orange-600 focus:ring-0 text-xs p-0 transition-colors text-slate-600 placeholder:text-slate-400"
+                                                                            value={contact.phone}
+                                                                            onChange={e => handleContactChange(index, 'phone', e.target.value)}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Departman"
+                                                                            className="block w-full border-0 border-b border-transparent bg-transparent focus:border-orange-600 focus:ring-0 text-xs p-0 transition-colors text-slate-600 placeholder:text-slate-400"
+                                                                            value={contact.department}
+                                                                            onChange={e => handleContactChange(index, 'department', e.target.value)}
+                                                                        />
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveContact(index)}
+                                                                        className="absolute top-2 right-2 text-slate-300 hover:text-red-500 transition-colors bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100"
+                                                                    >
+                                                                        <TrashIcon className="h-4 w-4" />
+                                                                    </button>
+                                                                </div>
+                                                            ))
+                                                        )}
                                                     </div>
                                                     <button
                                                         type="button"
-                                                        onClick={() => handleRemoveContact(index)}
-                                                        className="absolute top-2 right-2 text-gray-300 hover:text-red-500 transition-colors bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100"
+                                                        onClick={handleAddContact}
+                                                        className="w-full flex items-center justify-center px-4 py-2.5 border-2 border-dashed border-slate-200 text-sm font-bold rounded-2xl text-slate-600 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600 transition-all"
                                                     >
-                                                        <TrashIcon className="h-4 w-4" />
+                                                        <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                                                        Yeni Yetkili Ekle
                                                     </button>
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleAddContact}
-                                            className="w-full flex items-center justify-center px-4 py-2 border-2 border-dashed border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-600 bg-white hover:bg-gray-50 hover:border-indigo-400 hover:text-indigo-600 transition-all"
-                                        >
-                                            <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                                            Yeni Yetkili Ekle
-                                        </button>
-                                    </div>
+                                            ) : (
+                                                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 text-center">
+                                                    <p className="text-sm font-bold text-slate-600 italic">Bireysel müşteri için finansal detaylar (opsiyonel)</p>
+                                                </div>
+                                            )}
 
-                                    <div className="mt-8 flex justify-between items-center pt-5 border-t border-gray-100">
-                                        <div>
-                                            {isEditing && (
+                                            <div className="pt-4 space-y-4">
+                                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">FİNANSAL BİLGİLER</label>
+                                                {type === 'corporate' && (
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <Input label="Vergi Numarası" value={taxNumber} onChange={e => setTaxNumber(e.target.value)} placeholder="000... (Opsiyonel)" />
+                                                        <Input label="Vergi Dairesi" value={taxOffice} onChange={e => setTaxOffice(e.target.value)} placeholder="Opsiyonel" />
+                                                    </div>
+                                                )}
+                                                <Input label="IBAN Numarası" value={iban} onChange={e => setIban(e.target.value)} placeholder="TR00 0000..." />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-8 flex justify-between items-center pt-5 border-t border-slate-100">
+                                        <div className="flex items-center">
+                                            {isEditing && currentStep === 1 && (
                                                 <Button
                                                     type="button"
                                                     variant="secondary"
                                                     onClick={handleDelete}
-                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
+                                                    className="bg-red-50 text-red-600 hover:bg-red-100 border-none rounded-2xl h-11 px-6 font-bold"
                                                 >
-                                                    <TrashIcon className="h-4 w-4 mr-2" />
-                                                    Müşteriyi Sil
+                                                    <TrashIcon className="h-5 w-5 mr-2" />
+                                                    Sil
+                                                </Button>
+                                            )}
+                                            {currentStep > 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    onClick={handleBack}
+                                                    className="bg-slate-50 text-slate-600 hover:bg-slate-100 border-none rounded-2xl h-11 px-6 font-bold"
+                                                >
+                                                    Geri
                                                 </Button>
                                             )}
                                         </div>
                                         <div className="flex space-x-3">
-                                            <Button type="button" variant="secondary" onClick={onClose}>İptal</Button>
-                                            <Button type="submit" isLoading={isLoading} variant="orange">
-                                                {isEditing ? 'Değişiklikleri Kaydet' : 'Müşteriyi Oluştur'}
-                                            </Button>
+                                            {currentStep < 3 ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="orange"
+                                                    onClick={handleNext}
+                                                    className="rounded-2xl h-11 px-8 font-bold shadow-lg shadow-orange-200"
+                                                >
+                                                    Devam Et
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    type="button"
+                                                    onClick={() => handleSubmit()}
+                                                    isLoading={isLoading}
+                                                    variant="orange"
+                                                    className="rounded-2xl h-11 px-8 font-bold shadow-lg shadow-orange-200"
+                                                >
+                                                    {isEditing ? 'Güncelle' : 'Kaydet'}
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </form>
@@ -406,6 +478,17 @@ export default function CustomerFormModal({ isOpen, onClose, onSuccess, customer
                     </div>
                 </div>
             </Dialog>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                isLoading={isLoading}
+                title="Müşteriyi Sil"
+                description={`"${name}" isimli müşteriyi silmek üzeresiniz. Bu işlem geri alınamaz ve müşteriye bağlı tüm geçmiş veriler etkilenebilir. Devam etmek istiyor musunuz?`}
+                confirmText="Evet, Sil"
+                cancelText="Vazgeç"
+            />
         </Transition>
     );
 }

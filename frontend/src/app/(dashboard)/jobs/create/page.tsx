@@ -16,7 +16,10 @@ import {
     DocumentTextIcon,
     PlusIcon,
     PhotoIcon,
-    XMarkIcon
+    XMarkIcon,
+    ChevronRightIcon,
+    ChevronLeftIcon,
+    CheckIcon
 } from '@heroicons/react/24/outline';
 
 const fetcher = (url: string) => axios.get(url).then(res => res.data);
@@ -29,6 +32,8 @@ export default function CreateJobPage() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [customerToEdit, setCustomerToEdit] = useState<any>(null);
+    const [currentStep, setCurrentStep] = useState(1);
 
     // Form State
     const [customerId, setCustomerId] = useState('');
@@ -53,19 +58,12 @@ export default function CreateJobPage() {
     const activeCustomer = customers?.find((c: any) => c.id === parseInt(customerId));
     const customerContacts = activeCustomer?.contacts || [];
 
-    // Pre-fill location from customer if selected
     useEffect(() => {
         if (customerId && customers) {
             const customer = customers.find((c: any) => c.id === parseInt(customerId));
-            // Future: If we implement map selection, we can pre-fill coordinates here
-            // setLatitude(customer.latitude);
-            // setLongitude(customer.longitude);
-
-            // Set default contact phone from customer if no contact is selected
             if (!contactId && customer) {
                 setContactPhone(customer.phone || '');
             }
-            // Auto-select region if customer has one
             if (customer && customer.region_id) {
                 setRegionId(customer.region_id.toString());
             }
@@ -82,16 +80,14 @@ export default function CreateJobPage() {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Handle customer selection
     const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = e.target.value;
         setCustomerId(id);
         const customer = customers?.find((c: any) => c.id === parseInt(id));
         if (customer) {
-            // Reset contact fields when customer changes
             setContactId('');
             setContactName('');
-            setContactPhone(customer.phone || ''); // Default to customer phone if no contact selected
+            setContactPhone(customer.phone || '');
             if (customer.region_id) setRegionId(customer.region_id.toString());
         } else {
             setContactPhone('');
@@ -99,10 +95,14 @@ export default function CreateJobPage() {
         }
     };
 
-    // Handle contact selection
     const handleContactChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = e.target.value;
         setContactId(id);
+        if (id === 'manual') {
+            setContactName('');
+            setContactPhone('');
+            return;
+        }
         if (id) {
             const contact = customerContacts.find((c: any) => c.id === parseInt(id));
             if (contact) {
@@ -111,12 +111,34 @@ export default function CreateJobPage() {
             }
         } else {
             setContactName('');
-            setContactPhone(activeCustomer?.phone || ''); // Revert to customer phone if "none" is selected
+            setContactPhone(activeCustomer?.phone || '');
         }
+    };
+
+    const nextStep = () => {
+        if (currentStep === 1 && !customerId) {
+            alert('Lütfen bir müşteri seçiniz.');
+            return;
+        }
+        if (currentStep === 2 && (!title || !description)) {
+            alert('Lütfen iş başlığı ve açıklama alanlarını doldurunuz.');
+            return;
+        }
+        setCurrentStep(prev => prev + 1);
+        window.scrollTo(0, 0);
+    };
+
+    const prevStep = () => {
+        setCurrentStep(prev => prev - 1);
+        window.scrollTo(0, 0);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!scheduledAt) {
+            alert('Lütfen planlanan tarih ve saat bilgisini giriniz.');
+            return;
+        }
         setIsLoading(true);
 
         const formData = new FormData();
@@ -126,16 +148,14 @@ export default function CreateJobPage() {
         formData.append('type', type === 'other' ? customType : type);
         formData.append('description', description);
         if (materials) formData.append('materials', materials);
-        if (scheduledAt) formData.append('start_date', scheduledAt); // backend expects start_date
-        // default status and priority
+        if (scheduledAt) formData.append('start_date', scheduledAt);
         formData.append('status', 'pending');
         formData.append('priority', 'medium');
 
         if (assignedUserId) formData.append('assigned_user_id', assignedUserId);
         if (price) formData.append('price', price);
 
-        // Contact info
-        if (contactId) formData.append('authorized_person_id', contactId);
+        if (contactId && contactId !== 'manual') formData.append('authorized_person_id', contactId);
         if (contactName) formData.append('contact_name', contactName);
         if (contactPhone) formData.append('contact_phone', contactPhone);
         if (locationType === 'custom') {
@@ -151,8 +171,6 @@ export default function CreateJobPage() {
             await axios.post('/jobs', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
-            // Refresh cache and redirect
             mutate('/jobs');
             router.push('/jobs');
         } catch (error: any) {
@@ -170,419 +188,421 @@ export default function CreateJobPage() {
         );
     }
 
+    const steps = [
+        { id: 1, name: 'Müşteri & Konum', icon: UserIcon },
+        { id: 2, name: 'İş Detayları', icon: BriefcaseIcon },
+        { id: 3, name: 'Planlama', icon: CalendarIcon },
+    ];
+
     return (
-        <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
-            <div className="max-w-3xl mx-auto">
-                <div className="md:flex md:items-center md:justify-between mb-8">
-                    <div className="min-w-0 flex-1">
-                        <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                            Yeni İş Oluştur
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Müşteri için yeni bir servis veya montaj talebi oluşturun.
-                        </p>
-                    </div>
+        <div className="pb-20">
+            {/* Header */}
+            <div className="mb-10">
+                <h1 className="text-3xl font-black text-slate-800 tracking-tight">Yeni İş <span className="text-orange-600">Oluştur</span></h1>
+                <p className="mt-1 text-slate-400 font-bold uppercase tracking-widest text-[10px]">OPERASYONEL SERVİS VE MONTAJ KAYDI</p>
+            </div>
+
+            {/* Stepper */}
+            <div className="mb-12">
+                <div className="flex items-center justify-between max-w-2xl mx-auto relative">
+                    <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 z-0"></div>
+                    {steps.map((step) => {
+                        const Icon = step.icon;
+                        const isActive = currentStep === step.id;
+                        const isCompleted = currentStep > step.id;
+
+                        return (
+                            <div key={step.id} className="relative z-10 flex flex-col items-center">
+                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500 border-4 ${isActive ? 'bg-orange-600 border-orange-100 text-white scale-110 shadow-xl shadow-orange-100' :
+                                    isCompleted ? 'bg-green-500 border-green-100 text-white shadow-lg shadow-green-100' :
+                                        'bg-white border-slate-50 text-slate-300'
+                                    }`}>
+                                    {isCompleted ? <CheckIcon className="h-6 w-6 stroke-[3px]" /> : <Icon className="h-6 w-6 stroke-[2px]" />}
+                                </div>
+                                <span className={`mt-3 text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-orange-600' : 'text-slate-400'}`}>
+                                    {step.name}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
+            </div>
 
-                <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-100">
-                    <div className="p-6 sm:p-8 space-y-8">
-                        <form onSubmit={handleSubmit}>
-                            <div className="space-y-8 divide-y divide-gray-200">
-
-                                {/* 1. Basic Info */}
-                                <div className="space-y-6">
-                                    <div>
-                                        <h3 className="text-lg font-medium leading-6 text-gray-900 flex items-center">
-                                            <BriefcaseIcon className="h-5 w-5 mr-2 text-orange-500" />
-                                            İş Detayları
-                                        </h3>
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            Müşteri ve yapılacak işin türünü seçin.
-                                        </p>
+            <div className="max-w-4xl mx-auto">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden min-h-[500px] flex flex-col transition-all duration-500">
+                        {/* Step 1: Customer & Location */}
+                        {currentStep === 1 && (
+                            <div className="p-8 sm:p-12 animate-in fade-in slide-in-from-right-4 duration-500">
+                                <div className="mb-10 text-center">
+                                    <div className="inline-flex items-center justify-center h-16 w-16 bg-blue-50 text-blue-600 rounded-3xl mb-4 border border-blue-100">
+                                        <UserIcon className="h-8 w-8" />
                                     </div>
+                                    <h3 className="text-xl font-black text-slate-800">Müşteri Seçimi</h3>
+                                    <p className="text-sm font-bold text-slate-400 mt-1">İşin yapılacağı müşteriyi ve tam konumu belirleyin.</p>
+                                </div>
 
-                                    <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="customer" className="block text-sm font-medium text-gray-700">
-                                                Müşteri
-                                            </label>
-                                            <div className="mt-1 flex gap-2">
+                                <div className="space-y-8 max-w-xl mx-auto">
+                                    <div className="relative group">
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">MÜŞTERİ SEÇİN *</label>
+                                        <div className="flex gap-3">
+                                            <div className="relative flex-1">
                                                 <select
-                                                    id="customer"
-                                                    required
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm py-2.5 px-3 border bg-white"
                                                     value={customerId}
                                                     onChange={handleCustomerChange}
+                                                    required
+                                                    className="w-full h-14 pl-4 pr-10 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 appearance-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none"
                                                 >
-                                                    <option value="">Seçiniz...</option>
+                                                    <option value="">-- Müşteri Listesi --</option>
                                                     {customers.map((c: any) => (
                                                         <option key={c.id} value={c.id}>
-                                                            {c.name} ({c.type === 'corporate' ? 'Kurumsal' : 'Bireysel'})
+                                                            {c.name} {c.type === 'corporate' ? '(Kurumsal)' : '(Bireysel)'}
                                                         </option>
                                                     ))}
                                                 </select>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <ChevronRightIcon className="h-5 w-5 rotate-90" />
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setCustomerToEdit(null);
+                                                    setIsCustomerModalOpen(true);
+                                                }}
+                                                className="h-14 w-14 bg-white border-2 border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 hover:text-orange-600 hover:border-orange-600 transition-all shadow-sm"
+                                            >
+                                                <PlusIcon className="h-6 w-6 stroke-[3px]" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">MÜŞTERİ YETKİLİSİ / MUHATTAP</label>
+                                            <div className="flex gap-3">
+                                                <div className="relative flex-1">
+                                                    <select
+                                                        value={contactId}
+                                                        onChange={handleContactChange}
+                                                        disabled={!customerId}
+                                                        className="w-full h-14 pl-4 pr-10 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 appearance-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none disabled:opacity-50"
+                                                    >
+                                                        <option value="">-- Yetkili Seçin (Opsiyonel) --</option>
+                                                        {customerContacts.map((c: any) => (
+                                                            <option key={c.id} value={c.id}>{c.name} {c.department ? `(${c.department})` : ''}</option>
+                                                        ))}
+                                                        <option value="manual">+ El ile veri gir...</option>
+                                                    </select>
+                                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                        <ChevronRightIcon className="h-5 w-5 rotate-90" />
+                                                    </div>
+                                                </div>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setIsCustomerModalOpen(true)}
-                                                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                                                    onClick={() => {
+                                                        if (activeCustomer) {
+                                                            setCustomerToEdit(activeCustomer);
+                                                            setIsCustomerModalOpen(true);
+                                                        }
+                                                    }}
+                                                    disabled={!customerId}
+                                                    title="Müşteri kartını düzenle / Yetkili ekle"
+                                                    className="h-14 w-14 bg-white border-2 border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 hover:text-orange-600 hover:border-orange-600 transition-all shadow-sm disabled:opacity-50"
                                                 >
-                                                    <PlusIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                                    <PlusIcon className="h-6 w-6 stroke-[3px]" />
                                                 </button>
                                             </div>
                                         </div>
 
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="region" className="block text-sm font-medium text-gray-700">
-                                                Bölge
-                                            </label>
-                                            <div className="mt-1">
-                                                <select
-                                                    id="region"
-                                                    required
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm py-2.5 px-3 border bg-white"
-                                                    value={regionId}
-                                                    onChange={(e) => setRegionId(e.target.value)}
-                                                    disabled={!regions}
-                                                >
-                                                    <option value="">Seçiniz...</option>
-                                                    {regions?.map((r: any) => (
-                                                        <option key={r.id} value={r.id}>{r.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="sm:col-span-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Konum Bilgisi</label>
-                                            <div className="flex gap-4 mb-4">
-                                                <label className="flex items-center">
+                                        <div>
+                                            {contactId === 'manual' && (
+                                                <div className="mb-6 animate-in zoom-in-95 duration-200">
+                                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">YETKİLİ ADI SOYADI *</label>
                                                     <input
-                                                        type="radio"
-                                                        name="locationType"
-                                                        value="customer"
-                                                        checked={locationType === 'customer'}
-                                                        onChange={() => setLocationType('customer')}
-                                                        className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300"
+                                                        type="text"
+                                                        value={contactName}
+                                                        onChange={(e) => setContactName(e.target.value)}
+                                                        placeholder="Örn: Kübra Hanım (Muhasebe)"
+                                                        className="w-full h-14 px-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none"
                                                     />
-                                                    <span className="ml-2 text-sm text-gray-700">Müşteri Konumu (Varsayılan)</span>
-                                                </label>
-                                                <label className="flex items-center">
-                                                    <input
-                                                        type="radio"
-                                                        name="locationType"
-                                                        value="custom"
-                                                        checked={locationType === 'custom'}
-                                                        onChange={() => setLocationType('custom')}
-                                                        className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300"
-                                                    />
-                                                    <span className="ml-2 text-sm text-gray-700">Farklı Konum / Şantiye</span>
-                                                </label>
-                                            </div>
-
-                                            {locationType === 'custom' && (
-                                                <div className="space-y-4">
-                                                    <div>
-                                                        <label htmlFor="location_address" className="block text-xs font-bold text-slate-700 mb-1">
-                                                            Konum / Adres Tarifi
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            id="location_address"
-                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 px-3 border"
-                                                            placeholder="Örn: Gebze Şantiyesi, Kat 3..."
-                                                            value={locationAddress}
-                                                            onChange={e => setLocationAddress(e.target.value)}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label htmlFor="maps_url" className="block text-xs font-bold text-slate-700 mb-1">
-                                                            Google Maps Linki
-                                                        </label>
-                                                        <input
-                                                            type="url"
-                                                            id="maps_url"
-                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 px-3 border"
-                                                            placeholder="https://maps.google.com/..."
-                                                            value={mapsUrl}
-                                                            onChange={e => setMapsUrl(e.target.value)}
-                                                        />
-                                                    </div>
                                                 </div>
                                             )}
+                                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">İLETİŞİM TELEFONU</label>
+                                            <input
+                                                type="text"
+                                                value={contactPhone}
+                                                onChange={(e) => setContactPhone(e.target.value)}
+                                                placeholder="05..."
+                                                className="w-full h-14 px-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">İŞ ADRESİ / KONUM</label>
+
+                                        <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm mb-4">
+                                            <span className="text-sm font-bold text-slate-700">Farklı adres girmek istiyorum</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setLocationType(locationType === 'custom' ? 'customer' : 'custom')}
+                                                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${locationType === 'custom' ? 'bg-orange-600' : 'bg-slate-200'
+                                                    }`}
+                                            >
+                                                <span
+                                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${locationType === 'custom' ? 'translate-x-5' : 'translate-x-0'
+                                                        }`}
+                                                />
+                                            </button>
                                         </div>
 
-                                        {/* Contact Person Section */}
-                                        {customerId && (
-                                            <div className="sm:col-span-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                                <label className="block text-xs font-bold text-indigo-600 mb-4 uppercase tracking-wide">Yetkili / Muhatap Bilgisi</label>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                    {customerContacts.length > 0 && (
-                                                        <div className="md:col-span-3 mb-2">
-                                                            <label className="block text-xs font-bold text-slate-700 mb-2">Kayıtlı Yetkiliden Seç</label>
-                                                            <select
-                                                                className="w-full h-11 px-4 bg-white border border-indigo-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-indigo-900"
-                                                                value={contactId}
-                                                                onChange={handleContactChange}
-                                                            >
-                                                                <option value="">-- Listeden Seçiniz --</option>
-                                                                {customerContacts.map((contact: any) => (
-                                                                    <option key={contact.id} value={contact.id}>
-                                                                        {contact.name} ({contact.department || 'Bölüm Yok'}) - {contact.phone || '-'}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="md:col-span-1">
-                                                        <label className="block text-xs font-bold text-slate-700 mb-2">Ad Soyad</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Manuel giriş..."
-                                                            className="w-full h-11 px-4 bg-white border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
-                                                            value={contactName}
-                                                            onChange={(e) => setContactName(e.target.value)}
-                                                        />
-                                                    </div>
-                                                    <div className="md:col-span-2">
-                                                        <label className="block text-xs font-bold text-slate-700 mb-2">İletişim Telefonu</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="05..."
-                                                            className="w-full h-11 px-4 bg-white border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
-                                                            value={contactPhone}
-                                                            onChange={(e) => setContactPhone(e.target.value)}
-                                                        />
+                                        {locationType === 'customer' ? (
+                                            <div className="px-5 py-4 border-2 border-dashed border-slate-200 rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                <div className="flex items-start gap-3">
+                                                    <MapPinIcon className="h-5 w-5 text-slate-400 mt-0.5 shrink-0" />
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 text-orange-600/80">VARSAYILAN MÜŞTERİ ADRESİ</p>
+                                                        <p className="text-sm font-bold text-slate-600 leading-relaxed">
+                                                            {activeCustomer?.address || 'Müşteri adresi tanımlanmamış. Lütfen müşteri kartından adres ekleyin veya yukarıdaki butonu kullanarak manuel adres girişi yapın.'}
+                                                        </p>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <Input
+                                                    placeholder="Açık Adres / Konum Tarifi"
+                                                    value={locationAddress}
+                                                    onChange={e => setLocationAddress(e.target.value)}
+                                                />
+                                                <Input
+                                                    placeholder="Google Maps Linki (Opsiyonel)"
+                                                    value={mapsUrl}
+                                                    onChange={e => setMapsUrl(e.target.value)}
+                                                />
                                             </div>
                                         )}
-
-                                        <div className="sm:col-span-6">
-                                            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                                                İş Başlığı / Konu
-                                            </label>
-                                            <div className="mt-1">
-                                                <input
-                                                    type="text"
-                                                    id="title"
-                                                    required
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm py-2.5 px-3 border"
-                                                    placeholder="Örn: Yazıcı Arızası, Kamera Montajı..."
-                                                    value={title}
-                                                    onChange={e => setTitle(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                                                İş Tipi
-                                            </label>
-                                            <div className="mt-1 space-y-2">
-                                                <select
-                                                    id="type"
-                                                    required
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm py-2.5 px-3 border bg-white"
-                                                    value={type}
-                                                    onChange={e => setType(e.target.value)}
-                                                >
-                                                    <option value="support">Teknik Destek</option>
-                                                    <option value="camera">Kamera Montaj/Bakım</option>
-                                                    <option value="cabling">Kablolama / Altyapı</option>
-                                                    <option value="other">Diğer / Özel...</option>
-                                                </select>
-                                                {type === 'other' && (
-                                                    <Input
-                                                        placeholder="Yapılacak işi yazınız..."
-                                                        value={customType}
-                                                        onChange={e => setCustomType(e.target.value)}
-                                                        required
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="sm:col-span-6">
-                                            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                                                Açıklama / Notlar
-                                            </label>
-                                            <div className="mt-1">
-                                                <textarea
-                                                    id="description"
-                                                    rows={3}
-                                                    required
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-3 border"
-                                                    placeholder="Arıza detayı veya yapılacak işlem..."
-                                                    value={description}
-                                                    onChange={e => setDescription(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="sm:col-span-6">
-                                            <label htmlFor="materials" className="block text-sm font-medium text-gray-700">
-                                                Gerekli Malzemeler
-                                            </label>
-                                            <div className="mt-1">
-                                                <textarea
-                                                    id="materials"
-                                                    rows={2}
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-3 border"
-                                                    placeholder="Örn: 2x Cat6 Kablo, 1x Switch (Stok sistemi yakında eklenecek, şimdilik metin olarak giriniz)"
-                                                    value={materials}
-                                                    onChange={e => setMaterials(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="sm:col-span-6">
-                                            <label className="block text-sm font-medium text-gray-700">
-                                                Ekran Görüntüsü / Dosya Ekle
-                                            </label>
-                                            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer relative">
-                                                <div className="space-y-1 text-center">
-                                                    <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
-                                                    <div className="flex text-sm text-gray-600">
-                                                        <label
-                                                            htmlFor="file-upload"
-                                                            className="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500"
-                                                        >
-                                                            <span>Dosya Yükle</span>
-                                                            <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} accept="image/*,.pdf" />
-                                                        </label>
-                                                        <p className="pl-1">veya sürükleyip bırakın</p>
-                                                    </div>
-                                                    <p className="text-xs text-gray-500">
-                                                        PNG, JPG, PDF (max 10MB)
-                                                    </p>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                    multiple
-                                                    onChange={handleFileChange}
-                                                    accept="image/*,.pdf"
-                                                />
-                                            </div>
-
-                                            {/* Preview List */}
-                                            {files.length > 0 && (
-                                                <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                                                    {files.map((file, index) => (
-                                                        <li key={index} className="relative group rounded-lg border border-gray-200 bg-white p-2 flex items-center shadow-sm">
-                                                            <div className="flex-1 truncate text-xs text-gray-600">
-                                                                {file.name}
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeFile(index)}
-                                                                className="ml-2 text-gray-400 hover:text-red-500"
-                                                            >
-                                                                <XMarkIcon className="h-4 w-4" />
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
                                     </div>
-                                </div>
-
-                                {/* 2. Schedule & Assignment */}
-                                <div className="pt-8 space-y-6">
-                                    <div>
-                                        <h3 className="text-lg font-medium leading-6 text-gray-900 flex items-center">
-                                            <CalendarIcon className="h-5 w-5 mr-2 text-indigo-500" />
-                                            Planlama & Atama
-                                        </h3>
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            İşin ne zaman ve kim tarafından yapılacağını belirleyin.
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="scheduled_at" className="block text-sm font-medium text-gray-700">
-                                                Planlanan Tarih & Saat
-                                            </label>
-                                            <div className="mt-1">
-                                                <input
-                                                    type="datetime-local"
-                                                    id="scheduled_at"
-                                                    required
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 px-3 border"
-                                                    value={scheduledAt}
-                                                    onChange={e => setScheduledAt(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="assignee" className="block text-sm font-medium text-gray-700">
-                                                Personel Ata (Opsiyonel)
-                                            </label>
-                                            <div className="mt-1">
-                                                <select
-                                                    id="assignee"
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 px-3 border bg-white"
-                                                    value={assignedUserId}
-                                                    onChange={e => setAssignedUserId(e.target.value)}
-                                                >
-                                                    <option value="">Atama Yapma</option>
-                                                    {staff.map((u: any) => (
-                                                        <option key={u.id} value={u.id}>
-                                                            {u.name} {u.role === 'manager' ? '(Yönetici)' : ''}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-                                                Tahmini Ücret (TL)
-                                            </label>
-                                            <div className="mt-1 relative rounded-md shadow-sm">
-                                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                                    <span className="text-gray-500 sm:text-sm">₺</span>
-                                                </div>
-                                                <input
-                                                    type="number"
-                                                    id="price"
-                                                    className="block w-full rounded-md border-gray-300 pl-7 pr-12 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5 border"
-                                                    placeholder="0.00"
-                                                    value={price}
-                                                    onChange={e => setPrice(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="pt-8 mt-4 flex justify-end space-x-3">
-                                    <Button type="button" variant="secondary" onClick={() => router.back()}>
-                                        İptal
-                                    </Button>
-                                    <Button type="submit" isLoading={isLoading} variant="orange" className="px-8">
-                                        İşi Oluştur
-                                    </Button>
                                 </div>
                             </div>
-                        </form>
+                        )}
+
+                        {/* Step 2: Job Details */}
+                        {currentStep === 2 && (
+                            <div className="p-8 sm:p-12 animate-in fade-in slide-in-from-right-4 duration-500">
+                                <div className="mb-10 text-center">
+                                    <div className="inline-flex items-center justify-center h-16 w-16 bg-orange-50 text-orange-600 rounded-3xl mb-4 border border-orange-100">
+                                        <BriefcaseIcon className="h-8 w-8" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-slate-800">İş Detayları</h3>
+                                    <p className="text-sm font-bold text-slate-400 mt-1">Yapılacak işle ilgili tüm ayrıntıları ve dosyaları ekleyin.</p>
+                                </div>
+
+                                <div className="space-y-8 max-w-xl mx-auto">
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">İŞ BAŞLIĞI *</label>
+                                        <input
+                                            type="text"
+                                            value={title}
+                                            onChange={e => setTitle(e.target.value)}
+                                            required
+                                            placeholder="Örn: Güvenlik Kamerası Arızası"
+                                            className="w-full h-14 px-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">İŞ TİPİ</label>
+                                            <select
+                                                value={type}
+                                                onChange={e => setType(e.target.value)}
+                                                className="w-full h-14 px-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:border-orange-500 transition-all outline-none"
+                                            >
+                                                <option value="support">Teknik Destek</option>
+                                                <option value="camera">Kamera Kurulum</option>
+                                                <option value="cabling">Kablolama</option>
+                                                <option value="other">Diğer...</option>
+                                            </select>
+                                        </div>
+                                        {type === 'other' && (
+                                            <div className="animate-in zoom-in-95 duration-200">
+                                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">ÖZEL TİP</label>
+                                                <input
+                                                    type="text"
+                                                    value={customType}
+                                                    onChange={e => setCustomType(e.target.value)}
+                                                    className="w-full h-14 px-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:border-orange-500 transition-all outline-none"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">AÇIKLAMA / NOTLAR *</label>
+                                        <textarea
+                                            rows={3}
+                                            value={description}
+                                            onChange={e => setDescription(e.target.value)}
+                                            required
+                                            placeholder="İşin kapsamını veya arıza detayını buraya yazın..."
+                                            className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-[2rem] text-sm font-bold text-slate-700 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none resize-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">KULLANILACAK MALZEMELER</label>
+                                        <textarea
+                                            rows={2}
+                                            value={materials}
+                                            onChange={e => setMaterials(e.target.value)}
+                                            placeholder="İş için gerekecek (veya kullanılan) malzemeleri buraya yazın..."
+                                            className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-[2rem] text-sm font-bold text-slate-700 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none resize-none"
+                                        />
+                                    </div>
+
+                                    <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-4">DOSYA EKLE (MAX 10MB)</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                            {files.map((file, index) => (
+                                                <div key={index} className="relative aspect-square bg-white rounded-2xl border border-slate-200 p-2 flex flex-col items-center justify-center group overflow-hidden shadow-sm">
+                                                    <DocumentTextIcon className="h-8 w-8 text-slate-300 group-hover:text-orange-500 transition-colors" />
+                                                    <span className="mt-1 text-[8px] font-black text-slate-400 truncate w-full text-center px-1 uppercase">{file.name}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile(index)}
+                                                        className="absolute top-1 right-1 h-6 w-6 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <XMarkIcon className="h-4 w-4 stroke-[3px]" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <label className="aspect-square bg-white border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-300 hover:bg-orange-50/30 transition-all group">
+                                                <PhotoIcon className="h-8 w-8 text-slate-300 group-hover:text-orange-500 transition-colors" />
+                                                <span className="mt-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">Yükle</span>
+                                                <input type="file" className="hidden" multiple onChange={handleFileChange} accept="image/*,.pdf" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 3: Planning */}
+                        {currentStep === 3 && (
+                            <div className="p-8 sm:p-12 animate-in fade-in slide-in-from-right-4 duration-500">
+                                <div className="mb-10 text-center">
+                                    <div className="inline-flex items-center justify-center h-16 w-16 bg-indigo-50 text-indigo-600 rounded-3xl mb-4 border border-indigo-100">
+                                        <CalendarIcon className="h-8 w-8" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-slate-800">Planlama & Atama</h3>
+                                    <p className="text-sm font-bold text-slate-400 mt-1">İşin ne zaman ve kim tarafından yapılacağını belirleyerek işlemi tamamlayın.</p>
+                                </div>
+
+                                <div className="space-y-8 max-w-xl mx-auto">
+                                    <div className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 shadow-inner">
+                                        <div className="grid grid-cols-1 gap-8">
+                                            <div>
+                                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 text-center">RANDEVU TARİHİ VE SAATİ *</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={scheduledAt}
+                                                    onChange={e => setScheduledAt(e.target.value)}
+                                                    required
+                                                    className="w-full h-16 px-6 bg-white border-2 border-slate-100 rounded-3xl text-sm font-black text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-center"
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">PERSONEL ATA</label>
+                                                    <select
+                                                        value={assignedUserId}
+                                                        onChange={e => setAssignedUserId(e.target.value)}
+                                                        className="w-full h-14 px-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:border-indigo-500 transition-all outline-none"
+                                                    >
+                                                        <option value="">Sonra Ata</option>
+                                                        {staff.map((u: any) => (
+                                                            <option key={u.id} value={u.id}>{u.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">SERVİS ÜCRETİ (₺)</label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            value={price}
+                                                            onChange={e => setPrice(e.target.value)}
+                                                            placeholder="0.00"
+                                                            className="w-full h-14 pl-8 pr-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-black text-indigo-600 focus:border-indigo-500 transition-all outline-none"
+                                                        />
+                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₺</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-green-50/50 p-6 rounded-[2rem] border border-green-100 flex items-start gap-4">
+                                        <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center text-white shrink-0 mt-0.5 shadow-lg shadow-green-100">
+                                            <CheckIcon className="h-5 w-5 stroke-[3px]" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black text-green-700 uppercase tracking-widest mb-1">Kayda Hazır</p>
+                                            <p className="text-[11px] font-bold text-green-600 leading-relaxed">Tüm zorunlu alanları doldurdunuz. "Kaydı Tamamla" butonuna basarak iş emrini sisteme işleyebilirsiniz.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Navigation Footer */}
+                        <div className="mt-auto p-8 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={currentStep === 1 ? () => router.back() : prevStep}
+                                className="flex items-center text-xs font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors px-6 py-3 rounded-2xl"
+                            >
+                                <ChevronLeftIcon className="h-4 w-4 mr-2 stroke-[3px]" />
+                                {currentStep === 1 ? 'İptal' : 'Geri Dön'}
+                            </button>
+
+                            {currentStep < 3 ? (
+                                <button
+                                    type="button"
+                                    onClick={nextStep}
+                                    className="flex items-center h-14 px-10 bg-slate-900 hover:bg-black text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-200 active:scale-95"
+                                >
+                                    Sonraki Adım
+                                    <ChevronRightIcon className="h-4 w-4 ml-2 stroke-[3px]" />
+                                </button>
+                            ) : (
+                                <Button
+                                    type="submit"
+                                    isLoading={isLoading}
+                                    variant="orange"
+                                    className="h-14 px-12 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-orange-100 active:scale-95 border-none"
+                                >
+                                    KAYDI TAMAMLA
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
+
             {/* New Customer Modal */}
             <CustomerFormModal
                 isOpen={isCustomerModalOpen}
+                customerToEdit={customerToEdit}
                 onClose={() => setIsCustomerModalOpen(false)}
                 onSuccess={(newCustomer) => {
                     mutate('/customers');
-                    if (newCustomer) {
-                        setCustomerId(newCustomer.id);
+                    if (newCustomer && !customerToEdit) {
+                        setCustomerId(newCustomer.id.toString());
                     }
-                    // Optionally set as selected customer
                 }}
             />
         </div>

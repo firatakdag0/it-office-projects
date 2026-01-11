@@ -36,26 +36,26 @@ export default function DashboardPage() {
             {/* Welcome Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                        {isManager ? 'Tekrar Hoş Geldin,' : 'İyi Çalışmalar,'} <span className="text-orange-600">{user.name.split(' ')[0]}</span>!
+                    <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+                        {isManager ? 'Tekrar Hoş Geldin,' : 'İyi Çalışmalar,'} <span className="text-orange-600 font-extrabold">{user.name.split(' ')[0]}</span>!
                     </h1>
-                    <p className="mt-1 text-slate-500 font-bold uppercase tracking-widest text-[9px]">
-                        {isManager ? 'SİSTEM GENEL ÖZETİ VE GÜNLÜK RAPOR' : 'BUGÜNKÜ İŞLERİN VE PERFORMANS ÖZETİN'}
+                    <p className="mt-1 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                        {isManager ? 'SİSTEM VE OPERASYON ÖZETİ' : 'BUGÜNKÜ İŞLERİN VE PERFORMANS ÖZETİN'}
                     </p>
                 </div>
-                {isManager && (
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
+                    {isManager && (
                         <Link href="/jobs/create">
                             <Button
                                 variant="orange"
-                                className="h-11 px-6 rounded-xl font-black text-xs scale-100 hover:scale-105 active:scale-95 transition-all w-fit shadow-lg shadow-orange-100"
+                                className="h-12 px-8 rounded-2xl font-black text-[11px] tracking-widest shadow-xl shadow-orange-100/50 hover:shadow-orange-200/50 transition-all border-none"
                             >
-                                <PlusIcon className="h-4 w-4 mr-2" />
+                                <PlusIcon className="h-4 w-4 mr-2 stroke-[3px]" />
                                 YENİ İŞ KAYDI
                             </Button>
                         </Link>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* Stats Grid */}
@@ -127,20 +127,20 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Recent Jobs Table */}
-                <div className="lg:col-span-2">
-                    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border border-white overflow-hidden flex flex-col">
-                        <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+                        <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                             <div>
-                                <h2 className="text-lg font-black text-slate-900">
+                                <h2 className="text-lg font-black text-slate-800">
                                     {isManager ? 'Son İş Kayıtları' : 'Size Atanan Son İşler'}
                                 </h2>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
-                                    {isManager ? 'SİSTEME DÜŞEN SON TALEPLER' : 'TAKİBİNİZDE OLAN GÜNCEL GÖREVLER'}
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                    {isManager ? 'SİSTEME DÜŞEN GÜNCEL TALEPLER' : 'TAKİBİNİZDE OLAN GÜNCEL GÖREVLER'}
                                 </p>
                             </div>
-                            <Link href="/jobs" className="flex items-center text-[10px] font-black text-orange-600 hover:text-orange-700 transition-colors uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-lg">
+                            <Link href="/jobs" className="flex items-center text-[10px] font-black text-slate-500 hover:text-orange-600 transition-colors uppercase tracking-widest bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm">
                                 TÜMÜNÜ GÖR
-                                <ChevronRightIcon className="h-3.5 w-3.5 ml-1.5" />
+                                <ChevronRightIcon className="h-3.5 w-3.5 ml-2" />
                             </Link>
                         </div>
                         {/* Recent Jobs Content */}
@@ -150,20 +150,20 @@ export default function DashboardPage() {
                                     <Link
                                         key={job.id}
                                         href={`/jobs/${job.id}`}
-                                        className="flex items-center justify-between p-6 hover:bg-slate-50 transition-all active:bg-orange-50/50"
+                                        className="flex items-center justify-between p-8 hover:bg-slate-50/50 transition-all"
                                     >
                                         <div className="flex-1 min-w-0 mr-4">
-                                            <div className="flex items-center mb-1">
-                                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mr-2">#{job.id}</span>
+                                            <div className="flex items-center mb-1.5">
+                                                <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded mr-2 uppercase tracking-tighter">#{job.id}</span>
                                                 <h4 className="text-sm font-black text-slate-800 truncate">{job.customer?.name}</h4>
                                             </div>
-                                            <p className="text-[11px] font-bold text-slate-400 truncate tracking-tight">
+                                            <p className="text-[11px] font-bold text-slate-500 truncate tracking-tight">
                                                 {job.title || job.description}
                                             </p>
                                         </div>
-                                        <div className="flex flex-col items-end gap-2">
+                                        <div className="flex flex-col items-end gap-2.5">
                                             <StatusBadge status={job.status} />
-                                            <span className="text-[9px] font-black text-slate-400 tabular-nums uppercase">
+                                            <span className="text-[10px] font-black text-slate-400 tabular-nums">
                                                 {new Date(job.created_at).toLocaleDateString('tr-TR')}
                                             </span>
                                         </div>
@@ -174,32 +174,32 @@ export default function DashboardPage() {
 
                         <div className="max-lg:hidden overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50/50 text-slate-400 uppercase text-[9px] font-black tracking-widest border-b border-slate-50">
+                                <thead className="bg-slate-50/50 text-slate-400 uppercase text-[10px] font-black tracking-widest border-b border-slate-50">
                                     <tr>
-                                        <th className="px-6 py-4">Müşteri</th>
-                                        <th className="px-6 py-4">İş/Arıza Detayı</th>
-                                        <th className="px-6 py-4">Durum</th>
-                                        <th className="px-6 py-4 text-right">Tarih</th>
+                                        <th className="px-8 py-5">Müşteri</th>
+                                        <th className="px-8 py-5">İş / Arıza Detayı</th>
+                                        <th className="px-8 py-5">Durum</th>
+                                        <th className="px-8 py-5 text-right">Tarih</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {stats.recent_jobs?.map((job: any) => (
-                                        <tr key={job.id} className="hover:bg-slate-50/30 transition-colors group">
-                                            <td className="px-6 py-4">
+                                        <tr key={job.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={() => window.location.href = `/jobs/${job.id}`}>
+                                            <td className="px-8 py-5">
                                                 <div className="text-sm font-bold text-slate-700 group-hover:text-orange-600 transition-colors">
                                                     {job.customer?.name}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <p className="text-[11px] font-bold text-slate-500 max-w-[200px] truncate leading-none">
+                                            <td className="px-8 py-5">
+                                                <p className="text-[12px] font-bold text-slate-500 max-w-[250px] truncate leading-none">
                                                     {job.title || job.description}
                                                 </p>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-8 py-5">
                                                 <StatusBadge status={job.status} />
                                             </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <span className="text-[10px] font-bold text-slate-400 tabular-nums">
+                                            <td className="px-8 py-5 text-right font-black">
+                                                <span className="text-[11px] text-slate-400 tabular-nums uppercase">
                                                     {new Date(job.created_at).toLocaleDateString('tr-TR')}
                                                 </span>
                                             </td>
@@ -209,7 +209,7 @@ export default function DashboardPage() {
                             </table>
                         </div>
                         {(!stats.recent_jobs || stats.recent_jobs.length === 0) && (
-                            <div className="px-6 py-12 text-center text-slate-400 italic font-bold text-sm">
+                            <div className="px-8 py-16 text-center text-slate-400 italic font-bold text-sm">
                                 Henüz bir iş kaydı bulunmuyor.
                             </div>
                         )}
@@ -218,86 +218,55 @@ export default function DashboardPage() {
 
                 {/* Secondary Info / Quick Actions */}
                 <div className="space-y-6">
-                    {isManager ? (
-                        <>
-                            {/* Manager Quick Info */}
-                            <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl shadow-slate-100 flex flex-col justify-between relative overflow-hidden h-[240px]">
-                                <div className="relative z-10">
-                                    <h3 className="text-xl font-black mb-1">Saha Operasyonu</h3>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">EKİP DURUMU</p>
-                                    <p className="text-slate-300 text-sm font-bold leading-relaxed max-w-[200px]">
-                                        Şu an sahada <span className="text-white bg-orange-600 px-1.5 py-0.5 rounded ml-0.5">{stats.staff_count}</span> personeliniz aktif görev alıyor.
-                                    </p>
+                    <div className="space-y-6 flex flex-col items-stretch">
+                        {/* Performance Summary / Regional Info */}
+                        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col flex-1">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-800">Servis Bölgeleri</h3>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">AKTİF HİZMET ALANLARI</p>
                                 </div>
-                                <div className="relative z-10 mt-auto">
-                                    <Link href="/settings/team">
-                                        <button className="w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">
-                                            EKİBİ YÖNET
-                                        </button>
-                                    </Link>
+                                <div className="h-10 w-10 bg-orange-50 rounded-2xl flex items-center justify-center border border-orange-100/50">
+                                    <span className="text-sm font-black text-orange-600">{stats.total_regions}</span>
                                 </div>
-                                <UserGroupIcon className="absolute -bottom-8 -right-8 h-40 w-40 text-white/5 rotate-12" />
                             </div>
 
-                            {/* Regional Info */}
-                            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-white flex flex-col h-[200px]">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div>
-                                        <h3 className="text-lg font-black text-slate-900">Bölgeler</h3>
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">HİZMET ALANLARI</p>
-                                    </div>
-                                    <span className="text-[10px] bg-orange-50 text-orange-600 px-2 py-1 rounded-lg font-black">{stats.total_regions} AKTİF</span>
+                            <div className="space-y-4 mb-8">
+                                <p className="text-[11px] font-bold text-slate-500 leading-relaxed italic">
+                                    "Saha operasyonlarınızı optimize etmek için bölgelerinizi güncel tutun."
+                                </p>
+                                <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-orange-600 w-3/4 rounded-full"></div>
                                 </div>
-                                <p className="text-[11px] font-bold text-slate-500 mb-6 leading-relaxed">Hizmet verdiğiniz bölgeleri optimize ederek saha verimliliğini artırın.</p>
-                                <div className="mt-auto">
-                                    <Link href="/regions" className="flex items-center justify-center w-full bg-slate-50 hover:bg-orange-50 text-slate-500 hover:text-orange-600 border border-slate-100 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
-                                        BÖLGELERİ DÜZENLE
-                                        <ArrowRightIcon className="h-3.5 w-3.5 ml-2" />
-                                    </Link>
+                                <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    <span>Verimlilik</span>
+                                    <span>%75</span>
                                 </div>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            {/* Staff Quick Info */}
-                            <div className="bg-orange-600 rounded-3xl p-6 text-white shadow-xl shadow-orange-100 flex flex-col justify-between relative overflow-hidden h-[240px]">
-                                <div className="relative z-10">
-                                    <h3 className="text-xl font-black mb-1">Profilim</h3>
-                                    <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-4">PERSONEL KARTI</p>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center text-xs font-bold bg-white/10 p-2 rounded-lg border border-white/10">
-                                            <UsersIcon className="h-4 w-4 mr-2" />
-                                            {user.department || 'Genel Saha Ekibi'}
-                                        </div>
-                                        <div className="flex items-center text-xs font-bold bg-white/10 p-2 rounded-lg border border-white/10">
-                                            <BriefcaseIcon className="h-4 w-4 mr-2" />
-                                            {user.role === 'field_staff' ? 'Saha Personeli' : 'Yönetici'}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="relative z-10 mt-auto">
-                                    <Link href="/profile">
-                                        <button className="w-full py-3.5 bg-white text-orange-600 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all hover:bg-slate-50">
-                                            PROFİLİMİ GÖR
-                                        </button>
-                                    </Link>
-                                </div>
-                                <UsersIcon className="absolute -bottom-8 -right-8 h-40 w-40 text-black/5 rotate-12" />
                             </div>
 
-                            {/* Help / Support */}
-                            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-white flex flex-col">
-                                <h3 className="text-lg font-black text-slate-900 mb-4">Destek Hattı</h3>
-                                <p className="text-[11px] font-bold text-slate-500 mb-4 leading-relaxed">Operasyonel bir sorunla karşılaştığınızda yöneticiyle iletişime geçin.</p>
-                                <a
-                                    href="tel:05000000000"
-                                    className="flex items-center justify-center w-full bg-slate-900 text-white py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-slate-800"
-                                >
-                                    YÖNETİCİYİ ARA
-                                </a>
-                            </div>
-                        </>
-                    )}
+                            <Link href="/regions" className="mt-auto">
+                                <button className="flex items-center justify-center w-full bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-100 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                    BÖLGELERİ DÜZENLE
+                                    <ArrowRightIcon className="h-4 w-4 ml-2" />
+                                </button>
+                            </Link>
+                        </div>
+
+                        {/* Quick Support Account Card */}
+                        <div className="bg-slate-50/50 rounded-[2.5rem] p-8 border border-slate-100">
+                            <h3 className="text-sm font-black text-slate-800 mb-2">Destek İhtiyacı</h3>
+                            <p className="text-[11px] font-bold text-slate-500 mb-6 leading-relaxed">Operasyonel bir aksaklık durumunda teknik destekle iletişime geçin.</p>
+                            <Link href="tel:05000000000" className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 hover:border-orange-200 transition-colors shadow-sm group">
+                                <div className="flex items-center">
+                                    <div className="h-8 w-8 bg-orange-600 rounded-xl flex items-center justify-center mr-3 text-white">
+                                        <ClockIcon className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Merkez Destek</span>
+                                </div>
+                                <ChevronRightIcon className="h-4 w-4 text-slate-300 group-hover:text-orange-600 transition-all group-hover:translate-x-1" />
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -316,16 +285,17 @@ function StatCard({ title, value, icon: Icon, color, link }: any) {
 
     return (
         <Link href={link}>
-            <div className={`p-6 bg-white/80 backdrop-blur-sm rounded-3xl border border-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group`}>
-                <div className="flex justify-between items-start">
+            <div className={`p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group relative overflow-hidden`}>
+                <div className="absolute top-0 right-0 h-32 w-32 bg-slate-50 rounded-full -mr-16 -mt-16 group-hover:bg-orange-50 transition-colors duration-500"></div>
+                <div className="flex justify-between items-start relative z-10">
                     <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${c.dot} opacity-50`}></span>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-500 transition-colors">
+                        <div className="flex items-center space-x-2 mb-2">
+                            <span className={`w-1.5 h-1.5 rounded-full ${c.dot} shadow-[0_0_8px_rgba(0,0,0,0.1)]`}></span>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-600 transition-colors">
                                 {title}
                             </p>
                         </div>
-                        <p className="text-3xl font-black text-slate-900 tracking-tight tabular-nums">
+                        <p className="text-4xl font-black text-slate-800 tracking-tight tabular-nums">
                             {value}
                         </p>
                     </div>
